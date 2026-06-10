@@ -1,0 +1,11 @@
+# OMC session state
+.omc/
+
+# Dependencies / build (future)
+node_modules/
+.next/
+dist/
+
+# Env
+.env
+.env.local
