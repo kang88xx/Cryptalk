@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  nickname     String    @unique
+  passwordHash String
+  points       Int       @default(0)
+  level        Int       @default(1)
+  createdAt    DateTime   @default(now())
+  posts        Post[]
+  comments     Comment[]
+  votes        Vote[]
+  pointLogs    PointLog[]
+}
+
+model PointLog {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  action    String // post | comment | attendance
+  delta     Int
+  day       String? // 출석체크용 KST 날짜 (YYYY-MM-DD)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, action, day])
+  @@index([action, day])
+}
+
+model Board {
+  id         Int     @id @default(autoincrement())
+  slug       String  @unique
+  name       String
+  type       String  @default("community") // community | info | forum
+  coinSymbol String?
+  sortOrder  Int     @default(0)
+  posts      Post[]
+}
+
+model Post {
+  id           Int       @id @default(autoincrement())
+  board        Board     @relation(fields: [boardId], references: [id])
+  boardId      Int
+  author       User      @relation(fields: [userId], references: [id])
+  userId       String
+  title        String
+  content      String
+  viewCount    Int       @default(0)
+  upvotes      Int       @default(0)
+  downvotes    Int       @default(0)
+  commentCount Int       @default(0)
+  isNotice     Boolean   @default(false)
+  priceAtPost  Float?
+  priceSymbol  String?
+  createdAt    DateTime  @default(now())
+  comments     Comment[]
+  votes        Vote[]
+
+  @@index([boardId, createdAt(sort: Desc)])
+  @@index([boardId, upvotes])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    Int
+  author    User     @relation(fields: [userId], references: [id])
+  userId    String
+  content   String
+  upvotes   Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+model CalendarEvent {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  isTba       Boolean  @default(false)
+  ticker      String
+  title       String
+  description String
+  category    String // important | good | bad | neutral
+  sourceUrl   String?
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+}
+
+model KimpSnapshot {
+  id        Int      @id @default(autoincrement())
+  btcKrw    Float
+  btcUsd    Float
+  usdKrw    Float
+  kimp      Float
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model Vote {
+  id     Int    @id @default(autoincrement())
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId Int
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  value  Int
+
+  @@unique([postId, userId])
+}
