@@ -104,6 +104,42 @@ async function fetchSnapshot(): Promise<TickerSnapshot> {
   return { tickers, usdKrw, updatedAt: new Date().toISOString() };
 }
 
+// 업비트·빗썸 거래소 비교 (BTC/USDT 김프 계산용)
+export type ExchangeComparison = {
+  btcUpbit: number | null;
+  btcBithumb: number | null;
+  usdtUpbit: number | null;
+  usdtBithumb: number | null;
+};
+
+let exCache: { data: ExchangeComparison; at: number } | null = null;
+
+export async function getExchangeComparison(): Promise<ExchangeComparison> {
+  if (exCache && Date.now() - exCache.at < TTL_MS) return exCache.data;
+
+  const [upbit, bithumb] = await Promise.all([
+    fetchJson<UpbitTicker[]>("https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-USDT").catch(
+      () => null
+    ),
+    // 빗썸 2.0 API는 업비트 호환 포맷
+    fetchJson<UpbitTicker[]>("https://api.bithumb.com/v1/ticker?markets=KRW-BTC,KRW-USDT").catch(
+      () => null
+    ),
+  ]);
+
+  const pick = (rows: UpbitTicker[] | null, market: string) =>
+    rows?.find((r) => r.market === market)?.trade_price ?? null;
+
+  const data: ExchangeComparison = {
+    btcUpbit: pick(upbit, "KRW-BTC"),
+    btcBithumb: pick(bithumb, "KRW-BTC"),
+    usdtUpbit: pick(upbit, "KRW-USDT"),
+    usdtBithumb: pick(bithumb, "KRW-USDT"),
+  };
+  exCache = { data, at: Date.now() };
+  return data;
+}
+
 const KIMP_RECORD_INTERVAL_MS = 5 * 60_000;
 let lastKimpRecordAt = 0;
 

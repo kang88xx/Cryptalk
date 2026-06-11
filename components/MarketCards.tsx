@@ -1,6 +1,7 @@
+import { Fragment } from "react";
 import { prisma } from "@/lib/prisma";
-import { getTickers } from "@/lib/ticker";
-import { getMarketOverview, fngLabelKo } from "@/lib/market";
+import { getTickers, getExchangeComparison } from "@/lib/ticker";
+import { getMarketOverview, getFxHistory, fngLabelKo } from "@/lib/market";
 import { formatKrw, formatPercent } from "@/lib/format";
 import Sparkline from "@/components/Sparkline";
 import FngGauge from "@/components/FngGauge";
@@ -22,12 +23,11 @@ function changeColor(n: number | null): string {
 
 // 김프(BTC) · 도미넌스 · 공포탐욕 3카드 — 홈/대시보드 공용
 export default async function MarketCards() {
-  const [snapshot, overview, kimpHistory, domHistory] = await Promise.all([
+  const [snapshot, overview, exchanges, fxHistory, domHistory] = await Promise.all([
     getTickers(),
     getMarketOverview(),
-    prisma.kimpSnapshot
-      .findMany({ orderBy: { createdAt: "desc" }, take: 288 })
-      .then((rows) => rows.reverse()),
+    getExchangeComparison(),
+    getFxHistory(),
     prisma.marketSnapshot
       .findMany({ orderBy: { createdAt: "desc" }, take: 336 })
       .then((rows) => rows.reverse()),
@@ -35,7 +35,23 @@ export default async function MarketCards() {
 
   const btc = snapshot.tickers.find((t) => t.symbol === "BTC");
   const latestFng = overview.fearGreed?.at(-1) ?? null;
-  const kimpValues = kimpHistory.map((s) => s.kimp);
+
+  // 김프 = (국내가 / 기준가 - 1) × 100 — BTC는 바이낸스×환율, USDT는 환율 대비
+  const premium = (krw: number | null, base: number | null) =>
+    krw != null && base != null && base > 0 ? (krw / base - 1) * 100 : null;
+  const btcBase = btc?.priceUsd != null ? btc.priceUsd * snapshot.usdKrw : null;
+  const kimpGrid = [
+    {
+      label: "BTC",
+      upbit: premium(exchanges.btcUpbit, btcBase),
+      bithumb: premium(exchanges.btcBithumb, btcBase),
+    },
+    {
+      label: "USDT",
+      upbit: premium(exchanges.usdtUpbit, snapshot.usdKrw),
+      bithumb: premium(exchanges.usdtBithumb, snapshot.usdKrw),
+    },
+  ];
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -48,9 +64,46 @@ export default async function MarketCards() {
           업비트 {formatKrw(btc?.priceKrw ?? null)}원 · 바이낸스 ${btc?.priceUsd?.toLocaleString() ?? "–"} · 환율{" "}
           {snapshot.usdKrw.toLocaleString()}
         </p>
+        {/* 거래소별 김프 — 위 BTC · 아래 USDT */}
         <div className="mt-4 border-t border-line pt-3">
-          <Sparkline values={kimpValues} baseline={0} stroke="#636DDB" />
-          <p className="rail mt-2">5min interval · {kimpHistory.length} samples</p>
+          <div className="grid grid-cols-[44px_1fr_1fr] items-center gap-x-3 gap-y-1.5 text-xs">
+            <span />
+            <span className="text-right text-[10px] text-navy-300">업비트</span>
+            <span className="text-right text-[10px] text-navy-300">빗썸</span>
+            {kimpGrid.map((row) => (
+              <Fragment key={row.label}>
+                <span className="font-semibold text-navy-900">{row.label}</span>
+                <span
+                  className={`text-right font-mono font-semibold ${changeColor(row.upbit)}`}
+                >
+                  {formatPercent(row.upbit)}
+                </span>
+                <span
+                  className={`text-right font-mono font-semibold ${changeColor(row.bithumb)}`}
+                >
+                  {formatPercent(row.bithumb)}
+                </span>
+              </Fragment>
+            ))}
+          </div>
+
+          {/* 환율 지난 6일 */}
+          <div className="mt-3 grid grid-cols-6 gap-1 border-t border-line pt-3">
+            {fxHistory.map((p) => {
+              const d = new Date(p.date + "T00:00:00Z");
+              return (
+                <div key={p.date} className="bg-paper px-1 py-1.5 text-center">
+                  <p className="text-[9px] text-navy-300">
+                    {d.getUTCMonth() + 1}/{d.getUTCDate()}
+                  </p>
+                  <p className="font-mono text-xs font-semibold text-navy-900">
+                    {Math.round(p.rate).toLocaleString()}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="rail mt-2">환율 USD/KRW · 최근 6영업일</p>
         </div>
       </section>
 
@@ -71,7 +124,15 @@ export default async function MarketCards() {
         <div className="mt-4 border-t border-line pt-3">
           <Sparkline values={domHistory.map((s) => s.btcDominance)} stroke="#091955" />
           <p className="rail mt-2">
-            도미넌스 추이 · 15min interval · {domHistory.length} samples · CoinGecko
+            도미넌스 추이 · 15min interval · {domHistory.length} samples ·{" "}
+            <a
+              href="https://www.coingecko.com/en/global-charts"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-2 hover:underline"
+            >
+              CoinGecko ↗
+            </a>
           </p>
         </div>
       </section>

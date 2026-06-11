@@ -107,6 +107,35 @@ export async function getMarketOverview(): Promise<MarketOverview> {
   }
 }
 
+// 환율 최근 추이 — 영업일 기준 마지막 6개
+export type FxPoint = { date: string; rate: number };
+
+let fxHistCache: { data: FxPoint[]; at: number } | null = null;
+
+export async function getFxHistory(): Promise<FxPoint[]> {
+  if (fxHistCache && Date.now() - fxHistCache.at < 60 * 60_000) return fxHistCache.data;
+  try {
+    const end = new Date();
+    const start = new Date(end.getTime() - 12 * 86400_000);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    const data = await fetchJson<{ rates: Record<string, { KRW: number }> }>(
+      `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=USD&symbols=KRW`
+    );
+    const points = Object.entries(data.rates ?? {})
+      .map(([date, r]) => ({ date, rate: r.KRW }))
+      .filter((p) => p.rate > 0)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-6);
+    if (points.length > 0) {
+      fxHistCache = { data: points, at: Date.now() };
+      return points;
+    }
+  } catch {
+    // 실패 시 빈 배열
+  }
+  return fxHistCache?.data ?? [];
+}
+
 export function fngLabelKo(classification: string): string {
   switch (classification) {
     case "Extreme Fear":
