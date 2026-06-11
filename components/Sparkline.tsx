@@ -2,7 +2,7 @@ export default function Sparkline({
   values,
   width = 280,
   height = 56,
-  stroke = "#fbbf24",
+  stroke = "#636DDB",
   baseline,
 }: {
   values: number[];
@@ -14,7 +14,7 @@ export default function Sparkline({
   if (values.length < 2) {
     return (
       <div
-        className="flex items-center justify-center text-[11px] text-zinc-600"
+        className="flex items-center justify-center text-[11px] text-ink-500"
         style={{ width, height }}
       >
         데이터 수집 중...
@@ -47,7 +47,7 @@ export default function Sparkline({
           x2={width - pad}
           y1={y(baseline)}
           y2={y(baseline)}
-          stroke="#52525b"
+          stroke="#A0A6BB"
           strokeWidth="1"
           strokeDasharray="3 3"
         />

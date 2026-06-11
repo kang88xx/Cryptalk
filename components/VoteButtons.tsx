@@ -28,21 +28,21 @@ export default function VoteButtons({
         <button
           onClick={() => vote(1)}
           disabled={pending}
-          className="flex flex-col items-center gap-1 rounded-lg border border-zinc-700 px-5 py-3 hover:border-red-400/60 hover:bg-zinc-800 disabled:opacity-50"
+          className="flex flex-col items-center gap-1 border border-line px-5 py-3 hover:border-red-600/60 hover:bg-paper2 disabled:opacity-50"
         >
-          <span className="text-sm font-semibold text-red-400">추천</span>
-          <span className="text-lg font-bold text-zinc-100">{upvotes}</span>
+          <span className="text-sm font-semibold text-red-600">추천</span>
+          <span className="text-lg font-bold text-navy-900">{upvotes}</span>
         </button>
         <button
           onClick={() => vote(-1)}
           disabled={pending}
-          className="flex flex-col items-center gap-1 rounded-lg border border-zinc-700 px-5 py-3 hover:border-blue-400/60 hover:bg-zinc-800 disabled:opacity-50"
+          className="flex flex-col items-center gap-1 border border-line px-5 py-3 hover:border-indigo-700/60 hover:bg-paper2 disabled:opacity-50"
         >
-          <span className="text-sm font-semibold text-blue-400">비추천</span>
-          <span className="text-lg font-bold text-zinc-100">{downvotes}</span>
+          <span className="text-sm font-semibold text-indigo-700">비추천</span>
+          <span className="text-lg font-bold text-navy-900">{downvotes}</span>
         </button>
       </div>
-      {message && <p className="text-xs text-zinc-400">{message}</p>}
+      {message && <p className="text-xs text-ink-500">{message}</p>}
     </div>
   );
 }

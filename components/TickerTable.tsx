@@ -5,10 +5,10 @@ import type { TickerSnapshot } from "@/lib/ticker";
 import { formatKrw, formatPercent, formatVolume } from "@/lib/format";
 
 function changeColor(n: number | null): string {
-  if (n == null) return "text-zinc-400";
-  if (n > 0) return "text-red-400";
-  if (n < 0) return "text-blue-400";
-  return "text-zinc-400";
+  if (n == null) return "text-ink-500";
+  if (n > 0) return "text-red-600";
+  if (n < 0) return "text-indigo-700";
+  return "text-ink-500";
 }
 
 export default function TickerTable() {
@@ -35,44 +35,55 @@ export default function TickerTable() {
   }, []);
 
   return (
-    <section className="rounded-lg border border-zinc-800 bg-zinc-900/60">
-      <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-        <h2 className="text-sm font-bold text-zinc-100">실시간 시세</h2>
-        <span className="text-[11px] text-zinc-500">
-          업비트 기준 · USD/KRW {snapshot ? snapshot.usdKrw.toLocaleString() : "-"}
+    <section className="border border-line bg-white">
+      <header className="flex items-baseline justify-between border-b border-line px-4 py-3">
+        <h2 className="text-sm font-semibold text-navy-900">실시간 시세</h2>
+        <span className="rail">
+          UPBIT · USD/KRW {snapshot ? snapshot.usdKrw.toLocaleString() : "–"}
         </span>
       </header>
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-zinc-500">
-            <th className="px-4 py-2 text-left font-medium">코인</th>
-            <th className="px-2 py-2 text-right font-medium">시세(원)</th>
-            <th className="px-2 py-2 text-right font-medium">24H</th>
-            <th className="px-4 py-2 text-right font-medium">김프</th>
+          <tr className="bg-navy-900 font-light text-white">
+            <th className="px-4 py-2 text-left font-normal">코인</th>
+            <th className="px-2 py-2 text-right font-normal">시세(원)</th>
+            <th className="px-2 py-2 text-right font-normal">24H</th>
+            <th className="px-4 py-2 text-right font-normal">김프</th>
           </tr>
         </thead>
         <tbody>
           {snapshot == null ? (
             <tr>
-              <td colSpan={4} className="px-4 py-6 text-center text-zinc-500">
+              <td colSpan={4} className="px-4 py-6 text-center text-ink-500">
                 시세 불러오는 중...
               </td>
             </tr>
           ) : (
             snapshot.tickers.map((t) => (
-              <tr key={t.symbol} className="border-t border-zinc-800/60">
-                <td className="px-4 py-1.5">
-                  <span className="font-semibold text-zinc-200">{t.symbol}</span>{" "}
-                  <span className="text-zinc-500">{t.name}</span>
+              <tr key={t.symbol} className="border-t border-line">
+                <td className="px-4 py-2">
+                  <span className="font-semibold text-navy-900">{t.symbol}</span>{" "}
+                  <span className="text-ink-500">{t.name}</span>
                 </td>
-                <td className="px-2 py-1.5 text-right text-zinc-200" title={`거래대금 ${formatVolume(t.volumeKrw24h)}`}>
+                <td
+                  className="px-2 py-2 text-right font-mono text-ink-900"
+                  title={`거래대금 ${formatVolume(t.volumeKrw24h)}`}
+                >
                   {formatKrw(t.priceKrw)}
                 </td>
-                <td className={`px-2 py-1.5 text-right ${changeColor(t.change24h)}`}>
+                <td className={`px-2 py-2 text-right font-mono ${changeColor(t.change24h)}`}>
                   {formatPercent(t.change24h)}
                 </td>
-                <td className={`px-4 py-1.5 text-right ${t.kimchiPremium != null && t.kimchiPremium > 0 ? "text-amber-400/90" : "text-zinc-400"}`}>
-                  {formatPercent(t.kimchiPremium)}
+                <td className="px-4 py-2 text-right">
+                  <span
+                    className={`inline-block px-1.5 py-0.5 font-mono ${
+                      t.kimchiPremium != null && t.kimchiPremium > 0
+                        ? "bg-amber-300/50 text-navy-900"
+                        : "text-ink-500"
+                    }`}
+                  >
+                    {formatPercent(t.kimchiPremium)}
+                  </span>
                 </td>
               </tr>
             ))

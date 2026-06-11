@@ -20,11 +20,11 @@ export default function AttendanceButton() {
             router.refresh();
           })
         }
-        className="rounded-lg bg-amber-500 px-8 py-3 text-base font-bold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+        className="bg-amber-500 px-8 py-3 text-base font-bold text-navy-950 hover:bg-amber-400 disabled:opacity-50"
       >
         {pending ? "출석 중..." : "출석체크 (+10P)"}
       </button>
-      {message && <p className="text-xs text-zinc-400">{message}</p>}
+      {message && <p className="text-xs text-ink-500">{message}</p>}
     </div>
   );
 }

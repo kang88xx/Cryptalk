@@ -6,31 +6,34 @@ export default async function Header() {
   const session = await auth();
 
   return (
-    <header className="border-b border-zinc-800 bg-zinc-950">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="text-xl font-extrabold tracking-tight text-zinc-50">
-          Crypt<span className="text-amber-400">alk</span>
+    <header className="border-b border-line bg-white">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="inline-block h-3.5 w-3.5 bg-amber-500" aria-hidden />
+          <span className="text-xl font-semibold uppercase tracking-tight text-navy-900">
+            Cryptalk
+          </span>
         </Link>
         <div className="flex items-center gap-3 text-sm">
           {session?.user ? (
             <>
-              <span className="text-zinc-300">
-                <b className="text-amber-400">{session.user.name}</b> 님
+              <span className="text-ink-500">
+                <b className="font-semibold text-navy-900">{session.user.name}</b> 님
               </span>
               <form action={logout}>
-                <button className="rounded border border-zinc-700 px-3 py-1 text-zinc-300 hover:bg-zinc-800">
+                <button className="border border-navy-300 px-3 py-1 text-ink-500 hover:border-navy-900 hover:text-navy-900">
                   로그아웃
                 </button>
               </form>
             </>
           ) : (
             <>
-              <Link href="/login" className="text-zinc-300 hover:text-zinc-100">
+              <Link href="/login" className="text-ink-500 hover:text-navy-900">
                 로그인
               </Link>
               <Link
                 href="/register"
-                className="rounded bg-amber-500 px-3 py-1 font-semibold text-zinc-950 hover:bg-amber-400"
+                className="bg-navy-900 px-4 py-1.5 font-medium text-white hover:bg-navy-700"
               >
                 회원가입
               </Link>
@@ -38,26 +41,24 @@ export default async function Header() {
           )}
         </div>
       </div>
-      <nav className="border-t border-zinc-800/60">
+      <nav className="border-t border-line">
         <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 text-sm">
-          <Link href="/" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            홈
-          </Link>
-          <Link href="/free" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            자유게시판
-          </Link>
-          <Link href="/analysis" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            시장분석
-          </Link>
-          <Link href="/dashboard" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            대시보드
-          </Link>
-          <Link href="/calendar" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            캘린더
-          </Link>
-          <Link href="/attendance" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            출석체크
-          </Link>
+          {[
+            ["/", "홈"],
+            ["/free", "자유게시판"],
+            ["/analysis", "시장분석"],
+            ["/dashboard", "대시보드"],
+            ["/calendar", "캘린더"],
+            ["/attendance", "출석체크"],
+          ].map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              className="border-b-2 border-transparent px-3 py-2.5 font-medium text-ink-500 hover:border-amber-500 hover:text-navy-900"
+            >
+              {label}
+            </Link>
+          ))}
         </div>
       </nav>
     </header>

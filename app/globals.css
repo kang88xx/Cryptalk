@@ -1,20 +1,60 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 @import "tailwindcss";
 
-:root {
-  --background: #0c0e12;
-  --foreground: #e4e4e7;
+/* ARK Design System v2.0 tokens — navy core · amber accent · paper ground */
+@theme {
+  --color-paper: #f4f4f8;
+  --color-paper2: #ecedf3;
+  --color-line: #e3e5ee;
+
+  --color-navy-950: #04114f;
+  --color-navy-900: #091955;
+  --color-navy-700: #011081;
+  --color-navy-500: #546083;
+  --color-navy-300: #a0a6bb;
+  --color-navy-100: #dde0ea;
+
+  --color-amber-500: #efc540;
+  --color-amber-400: #f3d266;
+  --color-amber-300: #f6dd8c;
+
+  --color-indigo-500: #636ddb;
+  --color-indigo-300: #a3a8ea;
+  --color-indigo-700: #4853c4;
+
+  --color-ink-900: #0f1320;
+  --color-ink-500: #5c637a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-paper);
+  color: var(--color-ink-900);
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+}
+
+/* 페이지 레일 · 시스템 태그용 모노 크롬 */
+.rail {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-navy-500);
+}
+
+/* 아이브로우 — 섹션 라벨 */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-navy-500);
 }
 
 @keyframes ticker-scroll {

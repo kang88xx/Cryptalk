@@ -28,11 +28,11 @@ export default function PortfolioForm() {
       }}
       className="flex flex-wrap items-end gap-3"
     >
-      <label className="flex flex-col gap-1 text-xs text-zinc-400">
+      <label className="flex flex-col gap-1 text-xs text-ink-500">
         코인
         <select
           name="symbol"
-          className="rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 focus:border-amber-400 focus:outline-none"
+          className="border border-navy-300 bg-white px-3 py-2 text-sm text-ink-900 focus:border-navy-700 focus:outline-none"
         >
           {SYMBOLS.map((s) => (
             <option key={s} value={s}>
@@ -41,7 +41,7 @@ export default function PortfolioForm() {
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-400">
+      <label className="flex flex-col gap-1 text-xs text-ink-500">
         수량
         <input
           name="quantity"
@@ -52,10 +52,10 @@ export default function PortfolioForm() {
           placeholder="0.5"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
-          className="w-32 rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none"
+          className="w-32 border border-navy-300 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-navy-300 focus:border-navy-700 focus:outline-none"
         />
       </label>
-      <label className="flex flex-col gap-1 text-xs text-zinc-400">
+      <label className="flex flex-col gap-1 text-xs text-ink-500">
         매수 단가 (원)
         <input
           name="buyPrice"
@@ -66,18 +66,18 @@ export default function PortfolioForm() {
           placeholder="93000000"
           value={buyPrice}
           onChange={(e) => setBuyPrice(e.target.value)}
-          className="w-40 rounded border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none"
+          className="w-40 border border-navy-300 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-navy-300 focus:border-navy-700 focus:outline-none"
         />
       </label>
-      <div className="flex flex-col gap-1 text-xs text-zinc-400">
+      <div className="flex flex-col gap-1 text-xs text-ink-500">
         총 매수금액
-        <span className="px-1 py-2 text-sm font-semibold text-amber-400">
+        <span className="px-1 py-2 text-sm font-semibold font-mono text-navy-900">
           {total != null ? `${total.toLocaleString("ko-KR", { maximumFractionDigits: 0 })}원` : "-"}
         </span>
       </div>
       <button
         disabled={pending}
-        className="rounded bg-amber-500 px-5 py-2 text-sm font-semibold text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+        className="bg-amber-500 px-5 py-2 text-sm font-semibold text-navy-950 hover:bg-amber-400 disabled:opacity-50"
       >
         {pending ? "추가 중..." : "추가"}
       </button>

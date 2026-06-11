@@ -35,32 +35,32 @@ export default async function Home() {
       <MarketCards />
       <CryptoCalendar initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-      <section className="rounded-lg border border-zinc-800 bg-zinc-900/60">
-        <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-          <h2 className="text-sm font-bold text-zinc-100">자유게시판 최신글</h2>
-          <Link href="/free" className="text-xs text-zinc-400 hover:text-amber-400">
+      <section className="border border-line bg-white">
+        <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
+          <h2 className="text-sm font-semibold text-navy-900">자유게시판 최신글</h2>
+          <Link href="/free" className="text-xs text-ink-500 hover:text-navy-900">
             더보기 +
           </Link>
         </header>
         {recentPosts.length === 0 ? (
-          <p className="px-4 py-10 text-center text-sm text-zinc-500">
+          <p className="px-4 py-10 text-center text-sm text-ink-500">
             아직 글이 없습니다. 첫 글을 작성해 보세요!
           </p>
         ) : (
-          <ul className="divide-y divide-zinc-800/60">
+          <ul className="divide-y divide-line">
             {recentPosts.map((post) => (
               <li key={post.id} className="flex items-center gap-2 px-4 py-2 text-sm">
                 <Link
                   href={`/free/${post.id}`}
-                  className="flex-1 truncate text-zinc-200 hover:text-amber-400 hover:underline"
+                  className="flex-1 truncate text-ink-900 hover:text-navy-700 hover:underline"
                 >
                   {post.title}
                   {post.commentCount > 0 && (
-                    <span className="ml-1 text-xs text-amber-400">[{post.commentCount}]</span>
+                    <span className="ml-1 text-xs text-indigo-700">[{post.commentCount}]</span>
                   )}
                 </Link>
-                <span className="shrink-0 text-xs text-zinc-500">{post.author.nickname}</span>
-                <span className="w-12 shrink-0 text-right text-xs text-zinc-500">
+                <span className="shrink-0 text-xs text-ink-500">{post.author.nickname}</span>
+                <span className="w-12 shrink-0 text-right text-xs text-ink-500">
                   {formatPostDate(post.createdAt)}
                 </span>
               </li>
@@ -71,31 +71,31 @@ export default async function Home() {
 
       <aside className="flex flex-col gap-6">
         <TickerTable />
-        <section className="rounded-lg border border-zinc-800 bg-zinc-900/60">
-          <header className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-            <h2 className="text-sm font-bold text-zinc-100">시장 분석</h2>
-            <Link href="/analysis" className="text-xs text-zinc-400 hover:text-amber-400">
+        <section className="border border-line bg-white">
+          <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
+            <h2 className="text-sm font-semibold text-navy-900">시장 분석</h2>
+            <Link href="/analysis" className="text-xs text-ink-500 hover:text-navy-900">
               더보기 +
             </Link>
           </header>
           {analysisPosts.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-zinc-500">아직 분석 글이 없습니다.</p>
+            <p className="px-4 py-6 text-center text-xs text-ink-500">아직 분석 글이 없습니다.</p>
           ) : (
-            <ul className="divide-y divide-zinc-800/60">
+            <ul className="divide-y divide-line">
               {analysisPosts.map((post) => (
                 <li key={post.id} className="flex items-center gap-2 px-4 py-2 text-sm">
                   {post.priceSymbol && (
-                    <span className="shrink-0 rounded bg-zinc-800 px-1 text-[10px] text-amber-400">
+                    <span className="shrink-0 bg-paper2 px-1 font-mono text-[10px] text-navy-500">
                       {post.priceSymbol}
                     </span>
                   )}
                   <Link
                     href={`/analysis/${post.id}`}
-                    className="flex-1 truncate text-zinc-300 hover:text-amber-400 hover:underline"
+                    className="flex-1 truncate text-ink-900 hover:text-navy-700 hover:underline"
                   >
                     {post.title}
                   </Link>
-                  <span className="shrink-0 text-xs text-zinc-500">
+                  <span className="shrink-0 text-xs text-ink-500">
                     {formatPostDate(post.createdAt)}
                   </span>
                 </li>
@@ -103,26 +103,26 @@ export default async function Home() {
             </ul>
           )}
         </section>
-        <section className="rounded-lg border border-zinc-800 bg-zinc-900/60">
-          <header className="border-b border-zinc-800 px-4 py-2.5">
-            <h2 className="text-sm font-bold text-zinc-100">인기글 TOP 9</h2>
+        <section className="border border-line bg-white">
+          <header className="border-b border-line px-4 py-2.5">
+            <h2 className="text-sm font-semibold text-navy-900">인기글 TOP 9</h2>
           </header>
           {hotPosts.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-zinc-500">아직 인기글이 없습니다.</p>
+            <p className="px-4 py-6 text-center text-xs text-ink-500">아직 인기글이 없습니다.</p>
           ) : (
-            <ol className="divide-y divide-zinc-800/60">
+            <ol className="divide-y divide-line">
               {hotPosts.map((post, i) => (
                 <li key={post.id} className="flex items-center gap-2 px-4 py-2 text-sm">
-                  <span className={`w-4 shrink-0 text-center text-xs font-bold ${i < 3 ? "text-amber-400" : "text-zinc-500"}`}>
+                  <span className={`w-4 shrink-0 text-center text-xs font-bold ${i < 3 ? "text-navy-700" : "text-navy-300"}`}>
                     {i + 1}
                   </span>
                   <Link
                     href={`/free/${post.id}`}
-                    className="flex-1 truncate text-zinc-300 hover:text-amber-400 hover:underline"
+                    className="flex-1 truncate text-ink-900 hover:text-navy-700 hover:underline"
                   >
                     {post.title}
                   </Link>
-                  <span className="shrink-0 text-xs text-red-400">+{post.upvotes}</span>
+                  <span className="shrink-0 text-xs text-red-600">+{post.upvotes}</span>
                 </li>
               ))}
             </ol>
