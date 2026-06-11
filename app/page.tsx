@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPostDate } from "@/lib/format";
 import TickerTable from "@/components/TickerTable";
 import CryptoCalendar from "@/components/CryptoCalendar";
+import MarketCards from "@/components/MarketCards";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col gap-6">
+      <MarketCards />
       <CryptoCalendar initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <section className="rounded-lg border border-zinc-800 bg-zinc-900/60">

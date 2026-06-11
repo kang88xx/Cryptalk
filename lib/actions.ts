@@ -102,6 +102,28 @@ export async function createComment(postId: number, formData: FormData) {
   revalidatePath(`/free/${postId}`);
 }
 
+const PORTFOLIO_SYMBOLS = ["BTC", "ETH", "XRP", "SOL", "TRX"];
+
+export async function addPortfolioItem(formData: FormData) {
+  const userId = await requireUserId();
+  const symbol = String(formData.get("symbol") ?? "").toUpperCase().trim();
+  const quantity = parseFloat(String(formData.get("quantity") ?? ""));
+  const buyPrice = parseFloat(String(formData.get("buyPrice") ?? ""));
+
+  if (!PORTFOLIO_SYMBOLS.includes(symbol)) throw new Error("지원하지 않는 코인입니다.");
+  if (!Number.isFinite(quantity) || quantity <= 0) throw new Error("수량을 올바르게 입력해 주세요.");
+  if (!Number.isFinite(buyPrice) || buyPrice <= 0) throw new Error("단가를 올바르게 입력해 주세요.");
+
+  await prisma.portfolioItem.create({ data: { userId, symbol, quantity, buyPrice } });
+  revalidatePath("/dashboard");
+}
+
+export async function deletePortfolioItem(id: number) {
+  const userId = await requireUserId();
+  await prisma.portfolioItem.deleteMany({ where: { id, userId } });
+  revalidatePath("/dashboard");
+}
+
 export async function checkAttendance() {
   const userId = await requireUserId();
   const day = kstToday();
