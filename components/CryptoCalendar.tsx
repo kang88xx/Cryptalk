@@ -36,6 +36,71 @@ const BADGE_STYLE: Record<string, string> = {
 
 const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
+// 국가/거시/특수 이벤트용 이모지 아이콘
+const EMOJI_ICON: Record<string, string> = {
+  US: "🇺🇸",
+  USA: "🇺🇸",
+  KR: "🇰🇷",
+  JP: "🇯🇵",
+  EU: "🇪🇺",
+  FOMC: "🏛️",
+  OPEC: "🛢️",
+  IRAN: "⚠️",
+  WORLDCUP: "⚽",
+  CME: "📈",
+  MSCI: "📊",
+};
+
+const BADGE_COLORS = [
+  "bg-blue-500/30 text-blue-200",
+  "bg-emerald-500/30 text-emerald-200",
+  "bg-violet-500/30 text-violet-200",
+  "bg-rose-500/30 text-rose-200",
+  "bg-cyan-500/30 text-cyan-200",
+  "bg-orange-500/30 text-orange-200",
+];
+
+function badgeColor(ticker: string): string {
+  let hash = 0;
+  for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
+  return BADGE_COLORS[hash % BADGE_COLORS.length];
+}
+
+// 코인 아이콘: 이모지 → CoinCap CDN 이미지 → 이니셜 뱃지 순서로 폴백
+function EventIcon({ ticker, size = 13 }: { ticker: string; size?: number }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const emoji = EMOJI_ICON[ticker.toUpperCase()];
+
+  if (emoji) {
+    return (
+      <span className="shrink-0 leading-none" style={{ fontSize: size }}>
+        {emoji}
+      </span>
+    );
+  }
+  if (!imgFailed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`https://assets.coincap.io/assets/icons/${ticker.toLowerCase()}@2x.png`}
+        width={size}
+        height={size}
+        alt=""
+        className="shrink-0 rounded-full"
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+  return (
+    <span
+      className={`flex shrink-0 items-center justify-center rounded-full font-bold ${badgeColor(ticker)}`}
+      style={{ width: size, height: size, fontSize: Math.max(7, size * 0.55) }}
+    >
+      {ticker.slice(0, 1)}
+    </span>
+  );
+}
+
 export default function CryptoCalendar({
   initialYear,
   initialMonth,
@@ -167,12 +232,15 @@ export default function CryptoCalendar({
                       <button
                         key={ev.id}
                         onClick={() => setSelected(ev)}
-                        className={`truncate rounded border px-1 py-0.5 text-left text-[10px] leading-tight hover:brightness-125 ${
+                        className={`flex items-center gap-1 rounded border px-1 py-0.5 text-left text-[10px] leading-tight hover:brightness-125 ${
                           CHIP_STYLE[ev.category] ?? CHIP_STYLE.neutral
                         }`}
                         title={`${ev.ticker} ${ev.title}`}
                       >
-                        <b>{ev.ticker}</b> {ev.title}
+                        <EventIcon ticker={ev.ticker} size={13} />
+                        <span className="min-w-0 flex-1 truncate">
+                          <b>{ev.ticker}</b> {ev.title}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -191,11 +259,14 @@ export default function CryptoCalendar({
               <button
                 key={ev.id}
                 onClick={() => setSelected(ev)}
-                className={`rounded border px-1.5 py-0.5 text-[10px] hover:brightness-125 ${
+                className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] hover:brightness-125 ${
                   CHIP_STYLE[ev.category] ?? CHIP_STYLE.neutral
                 }`}
               >
-                <b>{ev.ticker}</b> {ev.title}
+                <EventIcon ticker={ev.ticker} size={13} />
+                <span>
+                  <b>{ev.ticker}</b> {ev.title}
+                </span>
               </button>
             ))}
           </div>
@@ -236,8 +307,12 @@ export default function CryptoCalendar({
                     })}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-zinc-50">
-              {selected.ticker} <span className="font-semibold text-zinc-300">{selected.title}</span>
+            <h3 className="flex items-center gap-2 text-lg font-bold text-zinc-50">
+              <EventIcon ticker={selected.ticker} size={20} />
+              <span>
+                {selected.ticker}{" "}
+                <span className="font-semibold text-zinc-300">{selected.title}</span>
+              </span>
             </h3>
             <p className="mt-3 text-sm leading-6 text-zinc-300">{selected.description}</p>
             <div className="mt-5 flex items-center justify-between">
