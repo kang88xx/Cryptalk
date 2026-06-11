@@ -83,15 +83,23 @@ export default async function MarketCards() {
             <div className="mt-1 flex justify-center">
               <FngGauge value={latestFng.value} label={fngLabelKo(latestFng.classification)} />
             </div>
-            <div className="mt-3 border-t border-line pt-3">
-              <Sparkline
-                values={overview.fearGreed!.map((p) => p.value)}
-                baseline={50}
-                stroke="#EFC540"
-                height={40}
-              />
-              <p className="rail mt-2">30 days · Alternative.me</p>
+            {/* 지난 6일 — 수치만 작게 */}
+            <div className="mt-3 grid grid-cols-6 gap-1 border-t border-line pt-3">
+              {overview.fearGreed!.slice(-7, -1).map((p) => {
+                const d = new Date(p.date);
+                return (
+                  <div key={p.date} className="bg-paper px-1 py-1.5 text-center">
+                    <p className="text-[9px] text-navy-300">
+                      {d.getUTCMonth() + 1}/{d.getUTCDate()}
+                    </p>
+                    <p className={`font-mono text-xs font-semibold ${fngColor(p.value)}`}>
+                      {p.value}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
+            <p className="rail mt-2">지난 6일 · Alternative.me</p>
           </>
         ) : (
           <p className="mt-4 text-sm text-ink-500">데이터를 불러오지 못했습니다.</p>

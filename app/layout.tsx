@@ -22,13 +22,9 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        {/* 페이지 레일 — 버전 · 날짜 · URL */}
+        {/* 페이지 레일 — 텍스트 없이 공간만 유지 */}
         <div className="border-b border-line bg-paper">
-          <div className="rail mx-auto flex max-w-6xl items-center justify-between px-4 py-1.5">
-            <span>Cryptalk · V 1.0</span>
-            <span className="hidden sm:block">Crypto Community · KRW Market Data</span>
-            <span>cryptalk-eight.vercel.app</span>
-          </div>
+          <div className="rail mx-auto max-w-6xl px-4 py-1.5">&nbsp;</div>
         </div>
         <Header />
         <TickerBar />

@@ -91,10 +91,10 @@ export default function FngGauge({
       </text>
 
       {/* 양끝 라벨 */}
-      <text x={cx - r} y={cy + 12} textAnchor="middle" fontSize={9} fill="#A0A6BB" fontFamily="var(--font-geist-mono), monospace">
+      <text x={cx - r} y={cy + 12} textAnchor="middle" fontSize={9} fill="#A0A6BB">
         공포 0
       </text>
-      <text x={cx + r} y={cy + 12} textAnchor="middle" fontSize={9} fill="#A0A6BB" fontFamily="var(--font-geist-mono), monospace">
+      <text x={cx + r} y={cy + 12} textAnchor="middle" fontSize={9} fill="#A0A6BB">
         100 탐욕
       </text>
     </svg>

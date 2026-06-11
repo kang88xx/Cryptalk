@@ -2,19 +2,48 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { logout } from "@/lib/actions";
 
+const NAV = [
+  ["/", "홈"],
+  ["/free", "자유게시판"],
+  ["/analysis", "시장분석"],
+  ["/calendar", "캘린더"],
+  ["/attendance", "출석체크"],
+];
+
 export default async function Header() {
   const session = await auth();
 
   return (
     <header className="border-b border-line bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           <span className="inline-block h-3.5 w-3.5 bg-amber-500" aria-hidden />
           <span className="text-xl font-semibold uppercase tracking-tight text-navy-900">
             Cryptalk
           </span>
         </Link>
-        <div className="flex items-center gap-3 text-sm">
+
+        {/* 가운데 메뉴 */}
+        <nav className="flex flex-1 items-center justify-center gap-1 text-sm">
+          {NAV.map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              className="border-b-2 border-transparent px-3 py-1.5 font-medium text-ink-500 hover:border-amber-500 hover:text-navy-900"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        {/* 우측 — 대시보드 · 회원 */}
+        <div className="flex shrink-0 items-center gap-3 text-sm">
+          <Link
+            href="/dashboard"
+            className="border-b-2 border-transparent py-1.5 font-medium text-ink-500 hover:border-amber-500 hover:text-navy-900"
+          >
+            대시보드
+          </Link>
           {session?.user ? (
             <>
               <span className="text-ink-500">
@@ -41,26 +70,6 @@ export default async function Header() {
           )}
         </div>
       </div>
-      <nav className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 text-sm">
-          {[
-            ["/", "홈"],
-            ["/free", "자유게시판"],
-            ["/analysis", "시장분석"],
-            ["/dashboard", "대시보드"],
-            ["/calendar", "캘린더"],
-            ["/attendance", "출석체크"],
-          ].map(([href, label]) => (
-            <Link
-              key={href}
-              href={href}
-              className="border-b-2 border-transparent px-3 py-2.5 font-medium text-ink-500 hover:border-amber-500 hover:text-navy-900"
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-      </nav>
     </header>
   );
 }
