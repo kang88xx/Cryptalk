@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -11,7 +11,7 @@ model User {
   id           String    @id @default(cuid())
   email        String    @unique
   nickname     String    @unique
-  passwordHash String
+  passwordHash String? // 소셜 로그인 계정은 비밀번호 없음
   points       Int       @default(0)
   level        Int       @default(1)
   createdAt    DateTime   @default(now())
@@ -100,7 +100,9 @@ model CalendarEvent {
   ticker      String
   title       String
   description String
-  category    String // important | good | bad | neutral
+  category    String // important | good | bad | neutral (색상 분류)
+  groupMain   String   @default("크립토") // 주식 | 크립토 | 매크로 | 이벤트 (필터 대분류)
+  groupSub    String   @default("기타") // 필터 소분류
   sourceUrl   String?
   createdAt   DateTime @default(now())
 
