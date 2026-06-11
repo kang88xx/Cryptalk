@@ -4,6 +4,14 @@ export function formatKrw(n: number | null): string {
   return n.toLocaleString("ko-KR", { maximumFractionDigits: 2 });
 }
 
+export function formatMoney(n: number | null, currency: string): string {
+  if (n == null) return "-";
+  if (currency === "USD") {
+    return `$${n.toLocaleString("en-US", { maximumFractionDigits: n >= 1 ? 2 : 6 })}`;
+  }
+  return `${formatKrw(n)}원`;
+}
+
 export function formatPercent(n: number | null): string {
   if (n == null) return "-";
   const sign = n > 0 ? "+" : "";

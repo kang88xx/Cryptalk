@@ -5,7 +5,7 @@ import { getTickers } from "@/lib/ticker";
 import { formatKrw, formatPercent } from "@/lib/format";
 import MarketCards from "@/components/MarketCards";
 import PortfolioForm from "@/components/PortfolioForm";
-import PortfolioDeleteButton from "@/components/PortfolioDeleteButton";
+import PortfolioRow from "@/components/PortfolioRow";
 
 export const dynamic = "force-dynamic";
 
@@ -26,18 +26,27 @@ export default async function DashboardPage() {
       })
     : [];
 
-  const priceNow = new Map(snapshot.tickers.map((t) => [t.symbol, t.priceKrw]));
+  const tickerMap = new Map(snapshot.tickers.map((t) => [t.symbol, t]));
+  const usdKrw = snapshot.usdKrw;
 
   const rows = items.map((item) => {
-    const current = priceNow.get(item.symbol) ?? null;
+    const ticker = tickerMap.get(item.symbol);
+    // 현재가는 입력 통화 기준 — 미지원 종목(주식 등)은 null → 매수금액으로 평가
+    const current =
+      item.currency === "USD" ? ticker?.priceUsd ?? null : ticker?.priceKrw ?? null;
     const buyTotal = item.quantity * item.buyPrice;
     const curTotal = current != null ? item.quantity * current : null;
-    const pnl = curTotal != null ? ((curTotal - buyTotal) / buyTotal) * 100 : null;
-    return { item, current, buyTotal, curTotal, pnl };
+    const toKrw = (v: number) => (item.currency === "USD" ? v * usdKrw : v);
+    return {
+      item,
+      current,
+      buyTotalKrw: toKrw(buyTotal),
+      nowTotalKrw: toKrw(curTotal ?? buyTotal),
+    };
   });
 
-  const totalBuy = rows.reduce((sum, r) => sum + r.buyTotal, 0);
-  const totalNow = rows.reduce((sum, r) => sum + (r.curTotal ?? r.buyTotal), 0);
+  const totalBuy = rows.reduce((sum, r) => sum + r.buyTotalKrw, 0);
+  const totalNow = rows.reduce((sum, r) => sum + r.nowTotalKrw, 0);
   const totalPnl = totalBuy > 0 ? ((totalNow - totalBuy) / totalBuy) * 100 : null;
 
   return (
@@ -52,7 +61,9 @@ export default async function DashboardPage() {
         <header className="border-b border-line px-5 py-3">
           <h2 className="text-sm font-semibold text-navy-900">나의 포트폴리오</h2>
           <p className="text-[11px] text-ink-500">
-            보유 코인을 수기로 입력하면 현재 시세 기준 총 자산이 계산됩니다.
+            코인·주식을 원화 또는 달러로 입력하세요. 달러 종목은 현재 환율(
+            {usdKrw.toLocaleString()})로 환산해 합산하며, 시세 미지원 종목은 매수금액으로
+            평가됩니다.
           </p>
         </header>
 
@@ -68,14 +79,16 @@ export default async function DashboardPage() {
           <>
             <div className="grid grid-cols-1 gap-3 border-b border-line px-5 py-4 sm:grid-cols-3">
               <div>
-                <p className="text-xs text-ink-500">나의 총 자산 (현재 평가)</p>
+                <p className="text-xs text-ink-500">나의 총 자산 (현재 평가 · 원화 환산)</p>
                 <p className="mt-0.5 font-mono text-2xl font-bold text-navy-900">
                   {formatKrw(totalNow)}원
                 </p>
               </div>
               <div>
-                <p className="text-xs text-ink-500">총 매수금액</p>
-                <p className="mt-0.5 font-mono text-2xl font-bold text-navy-900">{formatKrw(totalBuy)}원</p>
+                <p className="text-xs text-ink-500">총 매수금액 (원화 환산)</p>
+                <p className="mt-0.5 font-mono text-2xl font-bold text-navy-900">
+                  {formatKrw(totalBuy)}원
+                </p>
               </div>
               <div>
                 <p className="text-xs text-ink-500">평가손익</p>
@@ -88,44 +101,35 @@ export default async function DashboardPage() {
 
             {rows.length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-ink-500">
-                아래에서 보유 코인을 추가해 보세요.
+                아래에서 보유 종목을 추가해 보세요.
               </p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-navy-900 text-xs font-light text-white">
-                    <th className="px-5 py-2 text-left font-normal">코인</th>
+                    <th className="px-5 py-2 text-left font-normal">종목</th>
                     <th className="px-2 py-2 text-right font-normal">수량</th>
                     <th className="px-2 py-2 text-right font-normal">매수단가</th>
                     <th className="px-2 py-2 text-right font-normal">매수금액</th>
                     <th className="px-2 py-2 text-right font-normal">현재가</th>
                     <th className="px-2 py-2 text-right font-normal">평가금액</th>
                     <th className="px-2 py-2 text-right font-normal">수익률</th>
-                    <th className="w-16 px-5 py-2"></th>
+                    <th className="w-28 px-5 py-2"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ item, current, buyTotal, curTotal, pnl }) => (
-                    <tr key={item.id} className="border-b border-line last:border-0">
-                      <td className="px-5 py-2 font-semibold text-navy-900">{item.symbol}</td>
-                      <td className="px-2 py-2 text-right text-ink-900">
-                        {item.quantity.toLocaleString("ko-KR", { maximumFractionDigits: 8 })}
-                      </td>
-                      <td className="px-2 py-2 text-right text-ink-900">
-                        {formatKrw(item.buyPrice)}
-                      </td>
-                      <td className="px-2 py-2 text-right text-ink-900">{formatKrw(buyTotal)}</td>
-                      <td className="px-2 py-2 text-right text-ink-900">{formatKrw(current)}</td>
-                      <td className="px-2 py-2 text-right font-semibold text-navy-900">
-                        {formatKrw(curTotal)}
-                      </td>
-                      <td className={`px-2 py-2 text-right font-semibold ${pnlColor(pnl)}`}>
-                        {formatPercent(pnl)}
-                      </td>
-                      <td className="px-5 py-2 text-right">
-                        <PortfolioDeleteButton id={item.id} />
-                      </td>
-                    </tr>
+                  {rows.map(({ item, current }) => (
+                    <PortfolioRow
+                      key={item.id}
+                      item={{
+                        id: item.id,
+                        symbol: item.symbol,
+                        quantity: item.quantity,
+                        buyPrice: item.buyPrice,
+                        currency: item.currency,
+                      }}
+                      current={current}
+                    />
                   ))}
                 </tbody>
               </table>

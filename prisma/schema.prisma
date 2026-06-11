@@ -28,10 +28,20 @@ model PortfolioItem {
   userId    String
   symbol    String
   quantity  Float
-  buyPrice  Float // 매수 단가 (KRW)
+  buyPrice  Float // 매수 단가 (currency 기준)
+  currency  String   @default("KRW") // KRW | USD
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model MarketSnapshot {
+  id           Int      @id @default(autoincrement())
+  btcDominance Float
+  totalMcapUsd Float
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model PointLog {

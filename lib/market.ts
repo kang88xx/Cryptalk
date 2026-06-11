@@ -62,12 +62,31 @@ async function fetchOverview(): Promise<MarketOverview> {
   };
 }
 
+const SNAPSHOT_INTERVAL_MS = 15 * 60_000;
+let lastMarketSnapshotAt = 0;
+
+// 도미넌스 추이 차트용 — 15분 간격으로 DB에 적재
+async function maybeRecordMarketSnapshot(data: MarketOverview): Promise<void> {
+  if (data.btcDominance == null || data.totalMarketCapUsd == null) return;
+  if (Date.now() - lastMarketSnapshotAt < SNAPSHOT_INTERVAL_MS) return;
+  lastMarketSnapshotAt = Date.now();
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    await prisma.marketSnapshot.create({
+      data: { btcDominance: data.btcDominance, totalMcapUsd: data.totalMarketCapUsd },
+    });
+  } catch {
+    // 기록 실패는 응답에 영향 없음
+  }
+}
+
 export async function getMarketOverview(): Promise<MarketOverview> {
   if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
   if (!inflight) {
     inflight = fetchOverview()
       .then((data) => {
         cache = { data, at: Date.now() };
+        void maybeRecordMarketSnapshot(data);
         return data;
       })
       .finally(() => {

@@ -3,6 +3,7 @@ import { getTickers } from "@/lib/ticker";
 import { getMarketOverview, fngLabelKo } from "@/lib/market";
 import { formatKrw, formatPercent } from "@/lib/format";
 import Sparkline from "@/components/Sparkline";
+import FngGauge from "@/components/FngGauge";
 
 function fngColor(value: number): string {
   if (value <= 25) return "text-red-600";
@@ -21,11 +22,14 @@ function changeColor(n: number | null): string {
 
 // 김프(BTC) · 도미넌스 · 공포탐욕 3카드 — 홈/대시보드 공용
 export default async function MarketCards() {
-  const [snapshot, overview, kimpHistory] = await Promise.all([
+  const [snapshot, overview, kimpHistory, domHistory] = await Promise.all([
     getTickers(),
     getMarketOverview(),
     prisma.kimpSnapshot
       .findMany({ orderBy: { createdAt: "desc" }, take: 288 })
+      .then((rows) => rows.reverse()),
+    prisma.marketSnapshot
+      .findMany({ orderBy: { createdAt: "desc" }, take: 336 })
       .then((rows) => rows.reverse()),
   ]);
 
@@ -65,7 +69,10 @@ export default async function MarketCards() {
           </span>
         </p>
         <div className="mt-4 border-t border-line pt-3">
-          <p className="rail">Source · CoinGecko · 5min cache</p>
+          <Sparkline values={domHistory.map((s) => s.btcDominance)} stroke="#091955" />
+          <p className="rail mt-2">
+            도미넌스 추이 · 15min interval · {domHistory.length} samples · CoinGecko
+          </p>
         </div>
       </section>
 
@@ -73,17 +80,15 @@ export default async function MarketCards() {
         <h2 className="eyebrow">Fear &amp; Greed Index</h2>
         {latestFng ? (
           <>
-            <p className={`mt-2 font-mono text-4xl font-medium tracking-tight ${fngColor(latestFng.value)}`}>
-              {latestFng.value}
-              <span className="ml-2 font-sans text-base font-medium">
-                {fngLabelKo(latestFng.classification)}
-              </span>
-            </p>
-            <div className="mt-4 border-t border-line pt-3">
+            <div className="mt-1 flex justify-center">
+              <FngGauge value={latestFng.value} label={fngLabelKo(latestFng.classification)} />
+            </div>
+            <div className="mt-3 border-t border-line pt-3">
               <Sparkline
                 values={overview.fearGreed!.map((p) => p.value)}
                 baseline={50}
                 stroke="#EFC540"
+                height={40}
               />
               <p className="rail mt-2">30 days · Alternative.me</p>
             </div>
