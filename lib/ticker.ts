@@ -19,11 +19,7 @@ const COINS = [
   { symbol: "ETH", name: "이더리움", upbit: "KRW-ETH", binance: "ETHUSDT" },
   { symbol: "XRP", name: "리플", upbit: "KRW-XRP", binance: "XRPUSDT" },
   { symbol: "SOL", name: "솔라나", upbit: "KRW-SOL", binance: "SOLUSDT" },
-  { symbol: "ADA", name: "에이다", upbit: "KRW-ADA", binance: "ADAUSDT" },
-  { symbol: "DOGE", name: "도지코인", upbit: "KRW-DOGE", binance: "DOGEUSDT" },
   { symbol: "TRX", name: "트론", upbit: "KRW-TRX", binance: "TRXUSDT" },
-  { symbol: "ETC", name: "이더리움클래식", upbit: "KRW-ETC", binance: "ETCUSDT" },
-  { symbol: "BCH", name: "비트코인캐시", upbit: "KRW-BCH", binance: "BCHUSDT" },
 ];
 
 const TTL_MS = 10_000;

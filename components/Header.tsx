@@ -49,12 +49,6 @@ export default async function Header() {
           <Link href="/analysis" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
             시장분석
           </Link>
-          <Link href="/forum" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            포럼
-          </Link>
-          <Link href="/hot" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
-            HOT
-          </Link>
           <Link href="/dashboard" className="px-3 py-2 font-medium text-zinc-300 hover:text-amber-400">
             대시보드
           </Link>
