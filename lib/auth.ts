@@ -43,10 +43,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         const email = user.email?.toLowerCase();
         if (!email) return false;
+        // 미검증 이메일로 기존 계정에 연결되는 것을 차단 (계정 탈취 방지)
+        if (profile && profile.email_verified === false) return false;
 
         let dbUser = await prisma.user.findUnique({ where: { email } });
         if (!dbUser) {

@@ -130,8 +130,10 @@ export default function CryptoCalendar({
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
+  const monthKey = `${year}-${month}`;
+  const loading = loadedKey !== monthKey;
   const [excluded, setExcluded] = useState<Set<string>>(new Set()); // 체크 해제된 소분류
 
   const groups = useMemo(() => {
@@ -174,15 +176,20 @@ export default function CryptoCalendar({
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    const key = `${year}-${month}`;
     fetch(`/api/events?year=${year}&month=${month}`)
       .then((res) => (res.ok ? res.json() : { events: [] }))
       .then((data) => {
-        if (alive) setEvents(data.events ?? []);
+        if (alive) {
+          setEvents(data.events ?? []);
+          setLoadedKey(key);
+        }
       })
-      .catch(() => {})
-      .finally(() => {
-        if (alive) setLoading(false);
+      .catch(() => {
+        if (alive) {
+          setEvents([]);
+          setLoadedKey(key);
+        }
       });
     return () => {
       alive = false;

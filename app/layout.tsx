@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import TickerBar from "@/components/TickerBar";
+import LogoStrip from "@/components/LogoStrip";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -29,7 +30,8 @@ export default function RootLayout({
         <Header />
         <TickerBar />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-        <footer className="mt-8 border-t border-line bg-white">
+        <LogoStrip />
+        <footer className="border-t border-line bg-white">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-1 px-4 py-6">
             <p className="rail">Cryptalk · Crypto Community</p>
             <p className="text-xs text-ink-500">

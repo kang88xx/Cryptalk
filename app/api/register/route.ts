@@ -34,7 +34,15 @@ export async function POST(req: Request) {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.create({ data: { email, nickname, passwordHash } });
+  try {
+    await prisma.user.create({ data: { email, nickname, passwordHash } });
+  } catch {
+    // 중복 체크와 생성 사이의 동시 가입 (유니크 제약 위반)
+    return NextResponse.json(
+      { error: "이미 사용 중인 이메일 또는 닉네임입니다." },
+      { status: 409 }
+    );
+  }
 
   return NextResponse.json({ ok: true }, { status: 201 });
 }

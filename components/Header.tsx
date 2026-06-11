@@ -15,7 +15,7 @@ export default async function Header() {
 
   return (
     <header className="border-b border-line bg-white">
-      <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-y-1 px-4 py-3">
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <span className="inline-block h-3.5 w-3.5 bg-amber-500" aria-hidden />
           <span className="text-xl font-semibold uppercase tracking-tight text-navy-900">
@@ -23,13 +23,13 @@ export default async function Header() {
           </span>
         </Link>
 
-        {/* 가운데 메뉴 */}
-        <nav className="flex flex-1 items-center justify-center gap-1 text-sm">
+        {/* 가운데 메뉴 — 모바일에서는 둘째 줄 가로 스크롤 */}
+        <nav className="order-3 -mx-4 flex w-screen items-center gap-1 overflow-x-auto px-4 text-sm whitespace-nowrap md:order-none md:mx-0 md:w-auto md:flex-1 md:justify-center md:px-0">
           {NAV.map(([href, label]) => (
             <Link
               key={href}
               href={href}
-              className="border-b-2 border-transparent px-3 py-1.5 font-medium text-ink-500 hover:border-amber-500 hover:text-navy-900"
+              className="shrink-0 border-b-2 border-transparent px-3 py-1.5 font-medium text-ink-500 hover:border-amber-500 hover:text-navy-900"
             >
               {label}
             </Link>
@@ -37,7 +37,7 @@ export default async function Header() {
         </nav>
 
         {/* 우측 — 대시보드 · 회원 */}
-        <div className="flex shrink-0 items-center gap-3 text-sm">
+        <div className="ml-auto flex shrink-0 items-center gap-3 text-sm">
           <Link
             href="/dashboard"
             className="border-b-2 border-transparent py-1.5 font-medium text-ink-500 hover:border-amber-500 hover:text-navy-900"
