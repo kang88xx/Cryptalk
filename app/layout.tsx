@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import TickerBar from "@/components/TickerBar";
 import LogoStrip from "@/components/LogoStrip";
 import IndexBanner from "@/components/IndexBanner";
+import AppPromo from "@/components/AppPromo";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -29,6 +30,7 @@ export default function RootLayout({
         <Header />
         <TickerBar />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+        <AppPromo />
         <LogoStrip />
         <footer className="border-t border-line bg-white">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-1 px-4 py-6">

@@ -1,5 +1,7 @@
 import { getIndices } from "@/lib/indices";
 import { formatPercent } from "@/lib/format";
+import LiveViewers from "@/components/LiveViewers";
+import LangToggle from "@/components/LangToggle";
 
 function changeColor(n: number | null): string {
   if (n == null) return "text-ink-500";
@@ -30,7 +32,11 @@ export default async function IndexBanner() {
             </span>
           ))
         )}
-        <span className="rail ml-auto hidden sm:inline">Nasdaq · KOSPI · KOSDAQ</span>
+        <span className="ml-auto flex items-center gap-3">
+          <LiveViewers />
+          <span className="h-3 w-px bg-line" />
+          <LangToggle />
+        </span>
       </div>
     </div>
   );
