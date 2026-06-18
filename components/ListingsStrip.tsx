@@ -12,7 +12,7 @@ function kstDateTime(iso: string): string {
   return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${kstTime(iso)}`;
 }
 
-// 금일 신규 상장 피드 — @NewListingsFeed 채널 기반, 캘린더 상단 노출
+// 금일 바이낸스 선물 신규 상장 피드 — @NewListingsFeed 채널 기반, 캘린더 상단 노출
 export default async function ListingsStrip() {
   const { listings } = await getTodayListings();
 
@@ -20,22 +20,22 @@ export default async function ListingsStrip() {
     <section className="border border-line bg-white">
       <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-semibold text-navy-900">바이낸스 선물 신규 상장</h2>
-          <span className="text-xs text-ink-500">{listings.length}건 · 최근 7일</span>
+          <h2 className="text-sm font-semibold text-navy-900">오늘 바이낸스 선물 상장</h2>
+          <span className="text-xs text-ink-500">{listings.length}건 · 상장 예정(KST)</span>
         </div>
         <a
-          href="https://t.me/shrimp_notice"
+          href="https://t.me/NewListingsFeed"
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-ink-500 hover:text-navy-900"
         >
-          @shrimp_notice +
+          @NewListingsFeed +
         </a>
       </header>
 
       {listings.length === 0 ? (
         <p className="px-4 py-6 text-center text-xs text-ink-500">
-          최근 바이낸스 선물 신규 상장 소식이 없습니다.
+          오늘 바이낸스 선물 신규 상장 소식이 아직 없습니다.
         </p>
       ) : (
         <ul className="flex flex-wrap gap-x-3 gap-y-2 px-4 py-3">
@@ -48,12 +48,21 @@ export default async function ListingsStrip() {
                   </span>
                 )}
                 <span className="truncate text-ink-700">{l.detail}</span>
-                <span
-                  className="shrink-0 font-mono text-[10px] text-navy-300"
-                  title={`공지 게시 시각 (한국시간)`}
-                >
-                  {kstDateTime(l.date)} KST
-                </span>
+                {l.scheduledAt ? (
+                  <span
+                    className="shrink-0 font-mono text-[10px] text-navy-700"
+                    title={`상장 예정 (한국시간) · 게시 ${kstTime(l.date)} KST`}
+                  >
+                    {kstDateTime(l.scheduledAt)} KST
+                  </span>
+                ) : (
+                  <span
+                    className="shrink-0 font-mono text-[10px] text-ink-400"
+                    title={`상장 시각 미확인 · 게시 ${kstTime(l.date)} KST`}
+                  >
+                    미정
+                  </span>
+                )}
               </>
             );
             return (
