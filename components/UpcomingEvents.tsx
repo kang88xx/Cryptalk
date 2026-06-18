@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { upcomingKstRange } from "@/lib/time";
+import { upcomingUtcRange, kstTimeLabel } from "@/lib/time";
 import EventIcon from "@/components/EventIcon";
 
-const KST = 9 * 3600_000;
 const WD = ["일", "월", "화", "수", "목", "금", "토"];
 
 const CAT_DOT: Record<string, string> = {
@@ -19,17 +18,9 @@ const CAT_LABEL: Record<string, string> = {
   neutral: "중립",
 };
 
-// 시각 미지정(00:00 UTC) 또는 TBA면 시간 라벨 없음
-function kstTime(date: Date, isTba: boolean): string | null {
-  if (isTba) return null;
-  if (date.getUTCHours() === 0 && date.getUTCMinutes() === 0) return null;
-  const k = new Date(date.getTime() + KST);
-  return `${String(k.getUTCHours()).padStart(2, "0")}:${String(k.getUTCMinutes()).padStart(2, "0")}`;
-}
-
-// 홈용 "다가오는 일정" — 오늘부터 7일, KST 기준 일자별 묶음
+// 홈용 "다가오는 일정" — 오늘부터 7일. 통상(UTC) 날짜로 묶고, 한국시간은 보조 표기.
 export default async function UpcomingEvents() {
-  const { now, startUtc, endUtc } = upcomingKstRange(7); // 오늘 포함 7일
+  const { now, startUtc, endUtc } = upcomingUtcRange(7);
 
   const events = await prisma.calendarEvent.findMany({
     where: { date: { gte: startUtc, lt: endUtc }, isTba: false },
@@ -37,15 +28,15 @@ export default async function UpcomingEvents() {
     take: 24,
   });
 
-  // KST 일자별 그룹
-  const kn = new Date(now + KST);
-  const todayKey = `${kn.getUTCFullYear()}-${kn.getUTCMonth()}-${kn.getUTCDate()}`;
-  const tmr = new Date(now + KST + 86400_000);
+  // UTC 일자별 그룹 (오늘/내일 라벨도 UTC 기준)
+  const d = new Date(now);
+  const todayKey = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+  const tmr = new Date(now + 86400_000);
   const tmrKey = `${tmr.getUTCFullYear()}-${tmr.getUTCMonth()}-${tmr.getUTCDate()}`;
 
   const groups = new Map<string, { label: string; sub: string; items: typeof events }>();
   for (const ev of events) {
-    const k = new Date(ev.date.getTime() + KST);
+    const k = ev.date;
     const key = `${k.getUTCFullYear()}-${k.getUTCMonth()}-${k.getUTCDate()}`;
     const sub = `${k.getUTCMonth() + 1}.${k.getUTCDate()} (${WD[k.getUTCDay()]})`;
     const label = key === todayKey ? "오늘" : key === tmrKey ? "내일" : sub;
@@ -85,7 +76,7 @@ export default async function UpcomingEvents() {
               </div>
               <ul className="min-w-0 flex-1 space-y-1.5">
                 {g.items.map((ev) => {
-                  const t = kstTime(ev.date, ev.isTba);
+                  const { time, nextDay } = kstTimeLabel(ev.date);
                   return (
                     <li key={ev.id} className="flex items-center gap-2 text-sm">
                       <span
@@ -95,9 +86,10 @@ export default async function UpcomingEvents() {
                         title={CAT_LABEL[ev.category] ?? "중립"}
                       />
                       <EventIcon ticker={ev.ticker} size={15} />
-                      {t && (
+                      {time && (
                         <span className="shrink-0 font-mono text-xs font-semibold text-navy-700">
-                          {t}
+                          {time}
+                          {nextDay && <span className="ml-0.5 text-[9px] text-navy-300">익일</span>}
                         </span>
                       )}
                       <span className="min-w-0 flex-1 truncate text-ink-900">
@@ -112,7 +104,7 @@ export default async function UpcomingEvents() {
         </ul>
       )}
       <p className="border-t border-line px-4 py-2">
-        <span className="rail">KST 기준 · 시각 미정 일정은 전체 캘린더에서 확인</span>
+        <span className="rail">날짜 통상(UTC) 기준 · 시각은 KST(익일=한국시간 다음날 새벽)</span>
       </p>
     </section>
   );

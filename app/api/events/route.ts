@@ -12,11 +12,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "올바른 year(2000~2100)/month(1~12)가 필요합니다." }, { status: 400 });
   }
 
-  // KST 기준 월 경계 — 캘린더가 이벤트를 KST 날짜로 배치하므로 fetch도 KST 월로 맞춘다
-  // (자정 근처 이벤트가 잘못된 달/날에 빠지거나 중복되는 것을 방지)
-  const KST = 9 * 3600_000;
-  const start = new Date(Date.UTC(year, month - 1, 1) - KST);
-  const end = new Date(Date.UTC(year, month, 1) - KST);
+  // UTC 기준 월 경계 — 캘린더/홈이 이벤트를 통상(UTC) 날짜로 나열하므로 일치시킨다
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 1));
 
   const events = await prisma.calendarEvent.findMany({
     where: { date: { gte: start, lt: end } },

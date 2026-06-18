@@ -195,8 +195,8 @@ export default function CryptoCalendar({
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const firstWeekday = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7; // 월요일 시작
 
-  // 이벤트는 KST 날짜로 배치 — 홈 위젯·시각 라벨(KST)과 일치시켜 자정 근처 이벤트
-  // 가 홈/캘린더에서 다른 날에 표시되는 문제를 방지한다.
+  // 이벤트는 통상(UTC) 날짜로 배치 — FOMC 등 미국 매크로의 통상 날짜 = UTC 날짜.
+  // 한국시간은 시각 라벨/모달에 "익일"로 보조 표기해 홈 위젯과 동일 기준을 쓴다.
   const byDay = new Map<number, CalendarEvent[]>();
   const tbaEvents: CalendarEvent[] = [];
   for (const ev of visibleEvents) {
@@ -204,17 +204,17 @@ export default function CryptoCalendar({
       tbaEvents.push(ev);
       continue;
     }
-    const day = new Date(new Date(ev.date).getTime() + KST_OFFSET).getUTCDate();
+    const day = new Date(ev.date).getUTCDate();
     const list = byDay.get(day) ?? [];
     list.push(ev);
     byDay.set(day, list);
   }
 
-  // 오늘 강조도 KST 기준 — 마운트 후 설정되는 now 상태 사용(하이드레이션 안전 + 렌더 순수성)
-  const nowKst = now > 0 ? new Date(now + KST_OFFSET) : null;
+  // 오늘 강조도 UTC 기준 — 마운트 후 설정되는 now 상태 사용(하이드레이션 안전 + 렌더 순수성)
+  const nowUtc = now > 0 ? new Date(now) : null;
   const isThisMonth =
-    !!nowKst && nowKst.getUTCFullYear() === year && nowKst.getUTCMonth() + 1 === month;
-  const todayDay = nowKst ? nowKst.getUTCDate() : -1;
+    !!nowUtc && nowUtc.getUTCFullYear() === year && nowUtc.getUTCMonth() + 1 === month;
+  const todayDay = nowUtc ? nowUtc.getUTCDate() : -1;
 
   const cells: (number | null)[] = [
     ...Array.from({ length: firstWeekday }, () => null),
@@ -436,9 +436,10 @@ export default function CryptoCalendar({
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                        timeZone: "Asia/Seoul",
+                        timeZone: "UTC",
                       });
-                      return t ? `${ko} · ${kstHm(t)} KST` : ko;
+                      const nextDay = t != null && t.getUTCHours() >= 15; // KST로는 다음날
+                      return t ? `${ko} · ${nextDay ? "익일 " : ""}${kstHm(t)} KST` : ko;
                     })()}
               </span>
             </div>
