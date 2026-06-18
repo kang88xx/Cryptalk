@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import TickerBar from "@/components/TickerBar";
 import LogoStrip from "@/components/LogoStrip";
+import IndexBanner from "@/components/IndexBanner";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -23,10 +24,8 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        {/* 페이지 레일 — 텍스트 없이 공간만 유지 */}
-        <div className="border-b border-line bg-paper">
-          <div className="rail mx-auto max-w-6xl px-4 py-1.5">&nbsp;</div>
-        </div>
+        {/* 상단 배너 — 나스닥·코스피·코스닥 지수 */}
+        <IndexBanner />
         <Header />
         <TickerBar />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>

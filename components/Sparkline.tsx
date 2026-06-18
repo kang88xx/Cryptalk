@@ -4,12 +4,14 @@ export default function Sparkline({
   height = 56,
   stroke = "#636DDB",
   baseline,
+  accentRing,
 }: {
   values: number[];
   width?: number;
   height?: number;
   stroke?: string;
   baseline?: number; // 기준선 (예: 김프 0%)
+  accentRing?: string; // 끝점 강조 링 색 (예: 앰버)
 }) {
   if (values.length < 2) {
     return (
@@ -52,11 +54,21 @@ export default function Sparkline({
           strokeDasharray="3 3"
         />
       )}
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth="1.5" />
+      <polyline points={points} fill="none" stroke={stroke} strokeWidth={accentRing ? 2 : 1.5} />
+      {accentRing && (
+        <circle
+          cx={x(values.length - 1)}
+          cy={y(values[values.length - 1])}
+          r="6"
+          fill="none"
+          stroke={accentRing}
+          strokeWidth="2"
+        />
+      )}
       <circle
         cx={x(values.length - 1)}
         cy={y(values[values.length - 1])}
-        r="2.5"
+        r={accentRing ? "3.5" : "2.5"}
         fill={stroke}
       />
     </svg>
