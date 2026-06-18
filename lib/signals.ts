@@ -70,7 +70,7 @@ export function radarChips(
     if (c.kimchi >= 3) chips.push({ label: `김프 과열 +${c.kimchi.toFixed(1)}%`, tone: "caution" });
     else if (c.kimchi <= -1) chips.push({ label: `역프 ${c.kimchi.toFixed(1)}%`, tone: "note" });
   }
-  if (opts.listing) chips.push({ label: "오늘 상장", tone: "alert" });
+  if (opts.listing) chips.push({ label: "선물 상장", tone: "alert" });
   if (opts.event) chips.push({ label: "오늘 일정", tone: "note" });
   return chips;
 }
