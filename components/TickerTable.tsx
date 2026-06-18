@@ -17,6 +17,7 @@ export default function TickerTable() {
   useEffect(() => {
     let alive = true;
     const load = async () => {
+      if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
       try {
         const res = await fetch("/api/ticker");
         if (!res.ok) return;
@@ -27,10 +28,15 @@ export default function TickerTable() {
       }
     };
     load();
-    const id = setInterval(load, 10_000);
+    const id = setInterval(load, 60_000);
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -62,8 +68,7 @@ export default function TickerTable() {
             snapshot.tickers.map((t) => (
               <tr key={t.symbol} className="border-t border-line">
                 <td className="px-4 py-2">
-                  <span className="font-semibold text-navy-900">{t.symbol}</span>{" "}
-                  <span className="text-ink-500">{t.name}</span>
+                  <span className="font-semibold text-navy-900">{t.symbol}</span>
                 </td>
                 <td
                   className="px-2 py-2 text-right font-mono text-ink-900"

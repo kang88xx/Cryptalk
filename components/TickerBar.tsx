@@ -17,6 +17,7 @@ export default function TickerBar() {
   useEffect(() => {
     let alive = true;
     const load = async () => {
+      if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
       try {
         const res = await fetch("/api/ticker");
         if (!res.ok) return;
@@ -27,10 +28,15 @@ export default function TickerBar() {
       }
     };
     load();
-    const id = setInterval(load, 10_000);
+    const id = setInterval(load, 60_000); // 캐시 TTL과 균형 — 호출 비용 절감
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
+  // IP당 가입 남용 방지 — 1시간 5회
+  if (!(await checkRateLimit(`register:${clientIp(req)}`, 5, 60 * 60_000))) {
+    return NextResponse.json(
+      { error: "가입 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요." },
+      { status: 429 }
+    );
+  }
+
   let body: { email?: string; nickname?: string; password?: string };
   try {
     body = await req.json();

@@ -4,6 +4,9 @@ import { auth } from "@/lib/auth";
 import { getTickers } from "@/lib/ticker";
 import { formatKrw, formatPercent } from "@/lib/format";
 import MarketCards from "@/components/MarketCards";
+import MarketPulse from "@/components/MarketPulse";
+import KimchiTable from "@/components/KimchiTable";
+import ExchangeSpread from "@/components/ExchangeSpread";
 import PortfolioForm from "@/components/PortfolioForm";
 import PortfolioRow from "@/components/PortfolioRow";
 
@@ -55,6 +58,13 @@ export default async function DashboardPage() {
         <p className="eyebrow">Data Dashboard</p>
         <h1 className="mb-4 text-lg font-semibold text-navy-900">데이터 대시보드</h1>
         <MarketCards />
+      </div>
+
+      <MarketPulse />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <KimchiTable />
+        <ExchangeSpread />
       </div>
 
       <section className="border border-line bg-white">

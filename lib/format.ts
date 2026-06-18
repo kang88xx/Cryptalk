@@ -45,6 +45,20 @@ export function formatPostDate(date: Date): string {
     .replace(/\.$/, "");
 }
 
+// 데이터 신선도 표시 — "방금 / n분 전" (ISO 문자열 입력)
+export function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "-";
+  const sec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (sec < 30) return "방금";
+  if (sec < 60) return `${sec}초 전`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  return `${Math.floor(hr / 24)}일 전`;
+}
+
 export function formatDateTime(date: Date): string {
   return `${date.toLocaleDateString("ko-KR")} ${date.toLocaleTimeString("ko-KR", {
     hour: "2-digit",

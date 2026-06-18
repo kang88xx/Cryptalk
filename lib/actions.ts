@@ -17,6 +17,22 @@ function kstToday(): string {
   return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
 }
 
+// KST 자정의 UTC 시각
+function kstDayStartUtc(): Date {
+  const kn = new Date(Date.now() + 9 * 3600_000);
+  return new Date(Date.UTC(kn.getUTCFullYear(), kn.getUTCMonth(), kn.getUTCDate()) - 9 * 3600_000);
+}
+
+// 글/댓글 포인트 일일 적립 횟수 상한 (포인트 파밍 방지 — 작성 자체는 막지 않음)
+const DAILY_POINT_CAP: Record<string, number> = { post: 10, comment: 20 };
+
+async function underDailyPointCap(userId: string, action: "post" | "comment"): Promise<boolean> {
+  const count = await prisma.pointLog.count({
+    where: { userId, action, createdAt: { gte: kstDayStartUtc() } },
+  });
+  return count < DAILY_POINT_CAP[action];
+}
+
 // 포인트 적립 + 로그 + 레벨 자동 상승. day가 있으면 (userId, action, day) 유니크 — 출석 중복 방지
 async function awardPoints(
   userId: string,
@@ -78,7 +94,7 @@ export async function createPost(formData: FormData) {
   const post = await prisma.post.create({
     data: { boardId: board.id, userId, title, content, priceAtPost, priceSymbol },
   });
-  await awardPoints(userId, "post", POINTS.post);
+  if (await underDailyPointCap(userId, "post")) await awardPoints(userId, "post", POINTS.post);
 
   const basePath = board.type === "forum" ? `/forum/${board.slug}` : `/${board.slug}`;
   revalidatePath(basePath);
@@ -97,7 +113,7 @@ export async function createComment(postId: number, formData: FormData) {
       data: { commentCount: { increment: 1 } },
     }),
   ]);
-  await awardPoints(userId, "comment", POINTS.comment);
+  if (await underDailyPointCap(userId, "comment")) await awardPoints(userId, "comment", POINTS.comment);
 
   revalidatePath(`/free/${postId}`);
 }
@@ -158,13 +174,21 @@ export async function votePost(postId: number, value: 1 | -1) {
     return { ok: false as const, message: "이미 투표한 글입니다." };
   }
 
-  await prisma.$transaction([
-    prisma.vote.create({ data: { postId, userId, value } }),
-    prisma.post.update({
-      where: { id: postId },
-      data: value === 1 ? { upvotes: { increment: 1 } } : { downvotes: { increment: 1 } },
-    }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.vote.create({ data: { postId, userId, value } }),
+      prisma.post.update({
+        where: { id: postId },
+        data: value === 1 ? { upvotes: { increment: 1 } } : { downvotes: { increment: 1 } },
+      }),
+    ]);
+  } catch (e) {
+    // 동시 투표 race — 유니크 제약(P2002) 위반은 "이미 투표"로 정상 처리
+    if (e && typeof e === "object" && "code" in e && e.code === "P2002") {
+      return { ok: false as const, message: "이미 투표한 글입니다." };
+    }
+    throw e;
+  }
 
   revalidatePath(`/free/${postId}`);
   return { ok: true as const, message: value === 1 ? "추천했습니다." : "비추천했습니다." };

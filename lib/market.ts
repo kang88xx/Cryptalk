@@ -1,3 +1,5 @@
+import { cachedJson } from "@/lib/cache";
+
 export type FngPoint = {
   value: number;
   classification: string;
@@ -13,8 +15,6 @@ export type MarketOverview = {
 };
 
 const TTL_MS = 5 * 60_000;
-let cache: { data: MarketOverview; at: number } | null = null;
-let inflight: Promise<MarketOverview> | null = null;
 
 async function fetchJson<T>(url: string, timeoutMs = 6000): Promise<T> {
   const res = await fetch(url, {
@@ -43,6 +43,8 @@ async function fetchOverview(): Promise<MarketOverview> {
     fetchJson<CoinGeckoGlobal>("https://api.coingecko.com/api/v3/global").catch(() => null),
     fetchJson<FngResponse>("https://api.alternative.me/fng/?limit=30").catch(() => null),
   ]);
+  // 양쪽 모두 실패하면 throw — 캐시의 직전 정상값 보존(빈 데이터로 덮어쓰지 않음)
+  if (!global && !fng) throw new Error("market overview unavailable");
 
   const fearGreed =
     fng?.data
@@ -62,47 +64,16 @@ async function fetchOverview(): Promise<MarketOverview> {
   };
 }
 
-const SNAPSHOT_INTERVAL_MS = 15 * 60_000;
-let lastMarketSnapshotAt = 0;
-
-// 도미넌스 추이 차트용 — 15분 간격으로 DB에 적재
-async function maybeRecordMarketSnapshot(data: MarketOverview): Promise<void> {
-  if (data.btcDominance == null || data.totalMarketCapUsd == null) return;
-  if (Date.now() - lastMarketSnapshotAt < SNAPSHOT_INTERVAL_MS) return;
-  lastMarketSnapshotAt = Date.now();
-  try {
-    const { prisma } = await import("@/lib/prisma");
-    await prisma.marketSnapshot.create({
-      data: { btcDominance: data.btcDominance, totalMcapUsd: data.totalMarketCapUsd },
-    });
-  } catch {
-    // 기록 실패는 응답에 영향 없음
-  }
-}
-
 export async function getMarketOverview(): Promise<MarketOverview> {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
-  if (!inflight) {
-    inflight = fetchOverview()
-      .then((data) => {
-        cache = { data, at: Date.now() };
-        void maybeRecordMarketSnapshot(data);
-        return data;
-      })
-      .finally(() => {
-        inflight = null;
-      });
-  }
   try {
-    return await inflight;
+    return await cachedJson("overview", TTL_MS, fetchOverview);
   } catch {
-    if (cache) return cache.data;
     return {
       btcDominance: null,
       totalMarketCapUsd: null,
       marketCapChange24h: null,
       fearGreed: null,
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(0).toISOString(),
     };
   }
 }
@@ -110,31 +81,30 @@ export async function getMarketOverview(): Promise<MarketOverview> {
 // 환율 최근 추이 — 영업일 기준 마지막 6개
 export type FxPoint = { date: string; rate: number };
 
-let fxHistCache: { data: FxPoint[]; at: number } | null = null;
+async function fetchFxHistory(): Promise<FxPoint[]> {
+  const end = new Date();
+  const start = new Date(end.getTime() - 12 * 86400_000);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const data = await fetchJson<{ rates: Record<string, { KRW: number }> }>(
+    `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=USD&symbols=KRW`
+  );
+  const points = Object.entries(data.rates ?? {})
+    .map(([date, r]) => ({ date, rate: r.KRW }))
+    .filter((p) => p.rate > 0)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-6);
+  if (points.length === 0) throw new Error("fx history empty");
+  return points;
+}
 
 export async function getFxHistory(): Promise<FxPoint[]> {
-  if (fxHistCache && Date.now() - fxHistCache.at < 60 * 60_000) return fxHistCache.data;
   try {
-    const end = new Date();
-    const start = new Date(end.getTime() - 12 * 86400_000);
-    const fmt = (d: Date) => d.toISOString().slice(0, 10);
-    const data = await fetchJson<{ rates: Record<string, { KRW: number }> }>(
-      `https://api.frankfurter.dev/v1/${fmt(start)}..${fmt(end)}?base=USD&symbols=KRW`
-    );
-    const points = Object.entries(data.rates ?? {})
-      .map(([date, r]) => ({ date, rate: r.KRW }))
-      .filter((p) => p.rate > 0)
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-6);
-    if (points.length > 0) {
-      fxHistCache = { data: points, at: Date.now() };
-      return points;
-    }
+    return await cachedJson("fxHistory", 60 * 60_000, fetchFxHistory);
   } catch {
-    // 실패 시 빈 배열
+    return [];
   }
-  return fxHistCache?.data ?? [];
 }
+
 
 export function fngLabelKo(classification: string): string {
   switch (classification) {

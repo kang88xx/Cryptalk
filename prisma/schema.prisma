@@ -35,6 +35,21 @@ model PortfolioItem {
   @@index([userId])
 }
 
+// 외부 API 응답 공유 캐시 — 요청 시점 외부 호출 제거(서버리스 인스턴스 간 공유)
+model MarketCache {
+  key       String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+// 고정창 레이트리밋 카운터 (로그인/가입 무차별 대입·남용 방지)
+model RateLimit {
+  key       String   @id // 예: "login:1.2.3.4" | "register:1.2.3.4"
+  count     Int      @default(0)
+  resetAt   DateTime
+  @@index([resetAt])
+}
+
 model MarketSnapshot {
   id           Int      @id @default(autoincrement())
   btcDominance Float

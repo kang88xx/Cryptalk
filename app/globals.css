@@ -75,3 +75,21 @@ body {
 .ticker-track:hover {
   animation-play-state: paused;
 }
+
+/* 임박 이벤트(시작 12시간 전) — 빨간 테두리 깜박임 */
+@keyframes event-blink {
+  0%,
+  100% {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.5);
+  }
+  50% {
+    border-color: rgba(239, 68, 68, 0.25);
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0);
+  }
+}
+
+.event-imminent {
+  animation: event-blink 1s ease-in-out infinite;
+  border-color: #ef4444 !important;
+}

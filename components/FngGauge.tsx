@@ -32,14 +32,16 @@ export default function FngGauge({
   label: string;
   width?: number;
 }) {
-  const height = width * 0.62;
   const cx = width / 2;
-  const cy = height - 14;
   const r = width * 0.4;
+  const topPad = 8;
+  const cy = topPad + r; // 받침점(반원 baseline)
+  const height = cy + width * 0.3; // baseline 아래에 수치·라벨 공간 확보
+
   const band = BANDS.find((b) => value >= b.from && value <= b.to) ?? BANDS[2];
   const needleDeg = valueToDeg(value);
-  const tip = polar(cx, cy, r - 16, needleDeg);
-  const tail = polar(cx, cy, -10, needleDeg);
+  const tip = polar(cx, cy, r - 3, needleDeg); // 컬러 밴드까지 닿도록
+  const tail = polar(cx, cy, 14, needleDeg + 180); // 받침점 뒤로 살짝
 
   return (
     <svg width={width} height={height} className="block" role="img" aria-label={`공포·탐욕 지수 ${value} (${label})`}>
@@ -50,11 +52,12 @@ export default function FngGauge({
           fill="none"
           stroke={b.color}
           strokeWidth={13}
+          strokeLinecap="butt"
           opacity={value >= b.from && value <= b.to ? 1 : 0.32}
         />
       ))}
 
-      {/* 바늘 */}
+      {/* 바늘 — 받침점에서 현재 값의 밴드를 향함 */}
       <line
         x1={tail.x}
         y1={tail.y}
@@ -67,12 +70,20 @@ export default function FngGauge({
       <circle cx={cx} cy={cy} r={4.5} fill="#091955" />
       <circle cx={cx} cy={cy} r={1.8} fill="#FFFFFF" />
 
-      {/* 값 + 분류 */}
+      {/* 양끝 라벨 — baseline 모서리 */}
+      <text x={cx - r} y={cy + 13} textAnchor="middle" fontSize={9} fill="#A0A6BB">
+        공포 0
+      </text>
+      <text x={cx + r} y={cy + 13} textAnchor="middle" fontSize={9} fill="#A0A6BB">
+        100 탐욕
+      </text>
+
+      {/* 값 + 분류 — baseline 아래 중앙, 바늘과 겹치지 않음 */}
       <text
         x={cx}
-        y={cy - r * 0.36}
+        y={cy + width * 0.16}
         textAnchor="middle"
-        fontSize={width * 0.13}
+        fontSize={width * 0.15}
         fontWeight={600}
         fill={band.color}
         fontFamily="var(--font-geist-mono), monospace"
@@ -81,21 +92,13 @@ export default function FngGauge({
       </text>
       <text
         x={cx}
-        y={cy - r * 0.36 + width * 0.085}
+        y={cy + width * 0.16 + width * 0.075}
         textAnchor="middle"
-        fontSize={width * 0.055}
+        fontSize={width * 0.058}
         fontWeight={600}
         fill="#0F1320"
       >
         {label}
-      </text>
-
-      {/* 양끝 라벨 */}
-      <text x={cx - r} y={cy + 12} textAnchor="middle" fontSize={9} fill="#A0A6BB">
-        공포 0
-      </text>
-      <text x={cx + r} y={cy + 12} textAnchor="middle" fontSize={9} fill="#A0A6BB">
-        100 탐욕
       </text>
     </svg>
   );

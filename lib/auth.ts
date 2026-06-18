@@ -27,10 +27,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "이메일", type: "email" },
         password: { label: "비밀번호", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = credentials?.email as string | undefined;
         const password = credentials?.password as string | undefined;
         if (!email || !password) return null;
+
+        // 무차별 대입 방지 — IP당 15분 10회 (초과 시 로그인 실패로 처리)
+        const xff = request?.headers?.get?.("x-forwarded-for");
+        const ip = xff ? xff.split(",")[0].trim() : "unknown";
+        const { checkRateLimit } = await import("@/lib/ratelimit");
+        if (!(await checkRateLimit(`login:${ip}`, 10, 15 * 60_000))) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user?.passwordHash) return null; // 구글 전용 계정은 비밀번호 로그인 불가

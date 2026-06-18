@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import EventIcon from "@/components/EventIcon";
 
 type CalendarEvent = {
   id: number;
@@ -32,20 +33,6 @@ const CATEGORY_LABEL: Record<string, string> = {
   neutral: "중립",
 };
 
-const CATEGORY_GUIDE: Record<string, string> = {
-  important: "시장 주요 일정 (지표·금리·실적)",
-  good: "긍정적 이벤트 (출시·파트너십)",
-  bad: "부정적 이벤트 (언락·상폐·리스크)",
-  neutral: "영향 제한적",
-};
-
-const CHIP_STYLE: Record<string, string> = {
-  important: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700",
-  good: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
-  bad: "border-red-500/40 bg-red-500/10 text-red-700",
-  neutral: "border-navy-300/50 bg-paper2 text-ink-500",
-};
-
 const BADGE_STYLE: Record<string, string> = {
   important: "bg-indigo-500/15 text-indigo-700",
   good: "bg-emerald-500/15 text-emerald-700",
@@ -53,72 +40,60 @@ const BADGE_STYLE: Record<string, string> = {
   neutral: "bg-paper2 text-ink-500",
 };
 
-const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
-
-// 국가/거시/특수 이벤트용 이모지 아이콘
-const EMOJI_ICON: Record<string, string> = {
-  US: "🇺🇸",
-  USA: "🇺🇸",
-  KR: "🇰🇷",
-  JP: "🇯🇵",
-  EU: "🇪🇺",
-  FOMC: "🏛️",
-  OPEC: "🛢️",
-  IRAN: "⚠️",
-  WORLDCUP: "⚽",
-  CME: "📈",
-  MSCI: "📊",
+// 그룹별 색상 — 필터 pill과 달력 이벤트 칩에 동일하게 적용되어 색 자체가 범례가 됨
+type GroupStyle = { solid: string; text: string; dot: string; chip: string };
+const GROUP_COLORS: Record<string, GroupStyle> = {
+  크립토: {
+    solid: "bg-indigo-500 text-white",
+    text: "text-indigo-700",
+    dot: "bg-indigo-500",
+    chip: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700",
+  },
+  주식: {
+    solid: "bg-emerald-500 text-white",
+    text: "text-emerald-700",
+    dot: "bg-emerald-500",
+    chip: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
+  },
+  매크로: {
+    solid: "bg-amber-500 text-navy-950",
+    text: "text-amber-700",
+    dot: "bg-amber-500",
+    chip: "border-amber-500/50 bg-amber-300/30 text-amber-700",
+  },
+  이벤트: {
+    solid: "bg-rose-500 text-white",
+    text: "text-rose-700",
+    dot: "bg-rose-500",
+    chip: "border-rose-500/40 bg-rose-500/10 text-rose-700",
+  },
 };
+const GROUP_FALLBACK: GroupStyle = {
+  solid: "bg-navy-700 text-white",
+  text: "text-navy-700",
+  dot: "bg-navy-500",
+  chip: "border-navy-300/50 bg-paper2 text-navy-700",
+};
+const groupColor = (g: string): GroupStyle => GROUP_COLORS[g] ?? GROUP_FALLBACK;
 
-const BADGE_COLORS = [
-  "bg-indigo-500/20 text-indigo-700",
-  "bg-emerald-500/20 text-emerald-700",
-  "bg-navy-900/10 text-navy-700",
-  "bg-rose-500/20 text-rose-700",
-  "bg-amber-300 text-navy-900",
-  "bg-orange-500/20 text-orange-700",
-];
+const KST_OFFSET = 9 * 3600_000;
+const IMMINENT_MS = 12 * 3600_000; // 시작 12시간 전부터 강조
 
-function badgeColor(ticker: string): string {
-  let hash = 0;
-  for (let i = 0; i < ticker.length; i++) hash = (hash * 31 + ticker.charCodeAt(i)) >>> 0;
-  return BADGE_COLORS[hash % BADGE_COLORS.length];
+// 확정 시각이 있는 이벤트만 Date 반환 (00:00 UTC = 시각 미지정 → null)
+function eventTime(ev: CalendarEvent): Date | null {
+  if (ev.isTba) return null;
+  const d = new Date(ev.date);
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) return null;
+  return d;
 }
 
-// 코인 아이콘: 이모지 → CoinCap CDN 이미지 → 이니셜 뱃지 순서로 폴백
-function EventIcon({ ticker, size = 13 }: { ticker: string; size?: number }) {
-  const [imgFailed, setImgFailed] = useState(false);
-  const emoji = EMOJI_ICON[ticker.toUpperCase()];
-
-  if (emoji) {
-    return (
-      <span className="shrink-0 leading-none" style={{ fontSize: size }}>
-        {emoji}
-      </span>
-    );
-  }
-  if (!imgFailed) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={`https://assets.coincap.io/assets/icons/${ticker.toLowerCase()}@2x.png`}
-        width={size}
-        height={size}
-        alt=""
-        className="shrink-0 rounded-full"
-        onError={() => setImgFailed(true)}
-      />
-    );
-  }
-  return (
-    <span
-      className={`flex shrink-0 items-center justify-center rounded-full font-bold ${badgeColor(ticker)}`}
-      style={{ width: size, height: size, fontSize: Math.max(7, size * 0.55) }}
-    >
-      {ticker.slice(0, 1)}
-    </span>
-  );
+// KST HH:mm
+function kstHm(d: Date): string {
+  const k = new Date(d.getTime() + KST_OFFSET);
+  return `${String(k.getUTCHours()).padStart(2, "0")}:${String(k.getUTCMinutes()).padStart(2, "0")}`;
 }
+
+const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 
 export default function CryptoCalendar({
   initialYear,
@@ -135,6 +110,13 @@ export default function CryptoCalendar({
   const monthKey = `${year}-${month}`;
   const loading = loadedKey !== monthKey;
   const [excluded, setExcluded] = useState<Set<string>>(new Set()); // 체크 해제된 소분류
+  const [now, setNow] = useState(0); // 임박 판정용 — 마운트 후 설정(하이드레이션 안전)
+
+  useEffect(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const groups = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -237,92 +219,84 @@ export default function CryptoCalendar({
 
   return (
     <section className="border border-line bg-white">
-      <header className="flex items-center justify-between border-b border-line px-4 py-3">
-        <div>
-          <p className="eyebrow">Crypto Calendar</p>
-          <h2 className="text-sm font-semibold text-navy-900">
-            크립토 캘린더 <span className="font-normal text-ink-500">— 이벤트를 누르면 상세를 볼 수 있습니다</span>
-          </h2>
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h2 className="text-base font-semibold tracking-tight text-navy-900">크립토 캘린더</h2>
+          <span className="eyebrow hidden sm:inline">Crypto Calendar</span>
         </div>
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex shrink-0 items-center border border-line bg-white text-sm">
           <button
             onClick={() => moveMonth(-1)}
-            className="px-2 py-0.5 text-ink-500 hover:bg-paper2 hover:text-navy-900"
+            className="px-3 py-1.5 text-ink-500 hover:bg-paper2 hover:text-navy-900"
             aria-label="이전 달"
           >
-            ◀
+            ‹
           </button>
-          <span className="w-24 text-center font-semibold text-navy-900">
+          <span className="w-24 border-x border-line py-1.5 text-center font-semibold text-navy-900 tabular-nums">
             {year}년 {month}월
           </span>
           <button
             onClick={() => moveMonth(1)}
-            className="px-2 py-0.5 text-ink-500 hover:bg-paper2 hover:text-navy-900"
+            className="px-3 py-1.5 text-ink-500 hover:bg-paper2 hover:text-navy-900"
             aria-label="다음 달"
           >
-            ▶
+            ›
           </button>
         </div>
       </header>
 
-      {/* 색상 가이드 — 이벤트 색은 시장 영향 분류 */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-paper px-4 py-2 text-[11px] text-ink-500">
-        <span className="eyebrow">Color Guide</span>
-        {Object.entries(CATEGORY_LABEL).map(([key, label]) => (
-          <span key={key} className="flex items-center gap-1.5">
-            <span className={`h-2.5 w-2.5 border ${CHIP_STYLE[key]}`} />
-            <b className="text-ink-900">{label}</b> {CATEGORY_GUIDE[key]}
-          </span>
-        ))}
+      {/* 툴바 — 그룹 필터(eyebrow 타입: 배경 없이 색점 + 대문자 레터스페이싱 텍스트) */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-line px-4 py-2.5">
+        <button
+          onClick={() => setExcluded(new Set())}
+          className={`flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.1em] transition-colors ${
+            excluded.size === 0
+              ? "text-navy-900"
+              : "text-navy-300 hover:text-ink-500"
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 ${excluded.size === 0 ? "bg-navy-900" : "bg-navy-300"}`} />
+          전체
+        </button>
+        {[...groups.keys()].map((g) => {
+          const on = isGroupOn(g);
+          const c = groupColor(g);
+          const count = events.filter((e) => e.groupMain === g).length;
+          return (
+            <button
+              key={g}
+              onClick={() => toggleGroup(g)}
+              className={`flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.1em] transition-colors ${
+                on ? c.text : "text-navy-300 hover:text-ink-500"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 ${on ? c.dot : "bg-navy-300"}`} />
+              {g}
+              <span className="tabular-nums tracking-normal opacity-60">{count}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* 분류 필터 — 원하는 분류만 체크해서 보기 */}
-      <div className="border-b border-line px-4 py-2.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            onClick={() => setExcluded(new Set())}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              excluded.size === 0
-                ? "bg-navy-900 text-white"
-                : "border border-navy-300 text-ink-500 hover:border-navy-900 hover:text-navy-900"
-            }`}
-          >
-            전체
-          </button>
-          {[...groups.keys()].map((g) => {
-            const on = isGroupOn(g);
-            const count = events.filter((e) => e.groupMain === g).length;
+      {/* 소분류 필터 — 보조 위계, 활성 그룹만 노출 */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2">
+        {[...groups.entries()]
+          .filter(([g]) => isGroupOn(g))
+          .map(([g, subs]) => {
+            const c = groupColor(g);
             return (
-              <button
-                key={g}
-                onClick={() => toggleGroup(g)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  on
-                    ? "bg-navy-900 text-white"
-                    : "border border-line text-navy-300 hover:border-navy-300 hover:text-ink-500"
-                }`}
-              >
-                {g} <span className={on ? "font-mono text-navy-300" : "font-mono text-navy-300/70"}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-          {[...groups.entries()]
-            .filter(([g]) => isGroupOn(g))
-            .map(([g, subs]) => (
-              <span key={g} className="flex flex-wrap items-center gap-1">
-                <span className="font-mono text-[10px] tracking-wider text-navy-300 uppercase">{g}</span>
+              <span key={g} className="flex flex-wrap items-center gap-1.5">
+                <span className={`font-mono text-[10px] tracking-wider uppercase ${c.text}`}>{g}</span>
                 {subs.map((s) => {
                   const off = excluded.has(filterKey(g, s));
                   return (
                     <button
                       key={filterKey(g, s)}
                       onClick={() => toggleSub(g, s)}
-                      className={`border px-1.5 py-0.5 text-[10px] ${
+                      className={`rounded border px-2 py-0.5 text-[11px] font-medium transition-colors ${
                         off
-                          ? "border-line text-navy-300 line-through"
-                          : "border-amber-500/60 bg-amber-300/40 text-navy-900"
+                          ? "border-transparent bg-paper2 text-navy-300 line-through hover:text-ink-500"
+                          : c.chip
                       }`}
                     >
                       {s}
@@ -330,8 +304,8 @@ export default function CryptoCalendar({
                   );
                 })}
               </span>
-            ))}
-        </div>
+            );
+          })}
       </div>
 
       <div className="grid grid-cols-7 border-b border-line bg-paper2 text-center text-[11px] text-navy-500">
@@ -349,18 +323,20 @@ export default function CryptoCalendar({
         <p className="py-16 text-center text-sm text-ink-500">캘린더 불러오는 중...</p>
       ) : (
         <div className="grid grid-cols-7">
-          {cells.map((day, i) => (
+          {cells.map((day, i) => {
+            const isToday = day != null && isThisMonth && day === today.getDate();
+            return (
             <div
               key={i}
-              className={`min-h-20 border-b border-r border-line p-1 [&:nth-child(7n)]:border-r-0 ${
+              className={`relative min-h-16 border-b border-r border-line p-1 sm:min-h-20 [&:nth-child(7n)]:border-r-0 ${
                 day == null ? "bg-paper" : ""
-              }`}
+              } ${isToday ? "z-10 ring-2 ring-inset ring-red-500" : ""}`}
             >
               {day != null && (
                 <>
                   <div className="mb-1 text-right font-mono text-[11px]">
-                    {isThisMonth && day === today.getDate() ? (
-                      <span className="inline-block bg-amber-500 px-1 font-semibold text-navy-950">
+                    {isToday ? (
+                      <span className="inline-block bg-red-500 px-1 font-semibold text-white">
                         {day}
                       </span>
                     ) : (
@@ -368,26 +344,34 @@ export default function CryptoCalendar({
                     )}
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    {(byDay.get(day) ?? []).map((ev) => (
+                    {(byDay.get(day) ?? []).map((ev) => {
+                      const t = eventTime(ev);
+                      const imminent =
+                        t != null && now > 0 && t.getTime() - now >= 0 && t.getTime() - now <= IMMINENT_MS;
+                      return (
                       <button
                         key={ev.id}
                         onClick={() => setSelected(ev)}
                         className={`flex items-center gap-1 border px-1 py-0.5 text-left text-[10px] leading-tight hover:brightness-95 ${
-                          CHIP_STYLE[ev.category] ?? CHIP_STYLE.neutral
-                        }`}
-                        title={`${ev.ticker} ${ev.title}`}
+                          groupColor(ev.groupMain).chip
+                        } ${imminent ? "event-imminent" : ""}`}
+                        title={`${ev.ticker} ${ev.title}${t ? ` · ${kstHm(t)} KST` : ""}`}
                       >
                         <EventIcon ticker={ev.ticker} size={13} />
                         <span className="min-w-0 flex-1 truncate">
-                          <b>{ev.ticker}</b> {ev.title}
+                          <b>{ev.ticker}</b>{" "}
+                          {t && <span className="font-mono font-semibold">{kstHm(t)}</span>}{" "}
+                          {ev.title}
                         </span>
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -400,7 +384,7 @@ export default function CryptoCalendar({
                 key={ev.id}
                 onClick={() => setSelected(ev)}
                 className={`flex items-center gap-1 border px-1.5 py-0.5 text-[10px] hover:brightness-95 ${
-                  CHIP_STYLE[ev.category] ?? CHIP_STYLE.neutral
+                  groupColor(ev.groupMain).chip
                 }`}
               >
                 <EventIcon ticker={ev.ticker} size={13} />
@@ -441,12 +425,16 @@ export default function CryptoCalendar({
               <span className="font-mono text-xs text-ink-500">
                 {selected.isTba
                   ? `${month}월 중 (TBA)`
-                  : new Date(selected.date).toLocaleDateString("ko-KR", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      timeZone: "UTC",
-                    })}
+                  : (() => {
+                      const t = eventTime(selected);
+                      const ko = new Date(selected.date).toLocaleDateString("ko-KR", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        timeZone: "UTC",
+                      });
+                      return t ? `${ko} · ${kstHm(t)} KST` : ko;
+                    })()}
               </span>
             </div>
             <h3 className="flex items-center gap-2 text-lg font-semibold text-navy-900">

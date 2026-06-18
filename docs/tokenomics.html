@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cryptalk 토크노믹스 — $TALK</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --navy:#0f1c33; --navy-2:#1b2a47; --paper:#f6f3ec; --paper-2:#fffdf8;
+    --amber:#e0a106; --amber-soft:#f4d77e; --ink:#1a2233; --muted:#5c6678;
+    --line:#e3ddd0; --up:#d23b3b; --down:#2f6fdb; --good:#1f9d57;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+    line-height:1.7; font-size:16px; letter-spacing:-0.01em;
+  }
+  .wrap{max-width:920px; margin:0 auto; padding:0 24px 120px;}
+
+  /* Hero */
+  header.hero{
+    background:linear-gradient(160deg,var(--navy) 0%,var(--navy-2) 100%);
+    color:var(--paper); padding:64px 24px 56px; margin-bottom:48px;
+    border-bottom:4px solid var(--amber);
+  }
+  .hero-inner{max-width:920px; margin:0 auto;}
+  .badge{display:inline-block; background:rgba(224,161,6,.15); color:var(--amber-soft);
+    border:1px solid rgba(224,161,6,.4); padding:5px 14px; border-radius:999px;
+    font-size:13px; font-weight:600; margin-bottom:20px; letter-spacing:.02em;}
+  .hero h1{font-size:46px; font-weight:800; margin:0 0 8px; letter-spacing:-0.03em;}
+  .hero h1 .tk{color:var(--amber);}
+  .hero p.sub{font-size:17px; color:#c4cbd8; margin:0; font-weight:400;}
+  .meta-grid{display:flex; flex-wrap:wrap; gap:10px 28px; margin-top:28px; font-size:14px; color:#aeb6c6;}
+  .meta-grid b{color:var(--paper); font-weight:600;}
+
+  /* Sections */
+  section{margin:0 0 44px; scroll-margin-top:24px;}
+  h2{font-size:26px; font-weight:800; margin:48px 0 18px; padding-bottom:12px;
+     border-bottom:2px solid var(--line); letter-spacing:-0.02em; display:flex; align-items:baseline; gap:12px;}
+  h2 .num{color:var(--amber); font-size:18px; font-weight:800; font-variant-numeric:tabular-nums;}
+  h3{font-size:19px; font-weight:700; margin:30px 0 12px; color:var(--navy);}
+  p{margin:12px 0;}
+  a{color:var(--amber); text-decoration:none; border-bottom:1px solid transparent;}
+  a:hover{border-bottom-color:var(--amber);}
+  code{background:#ece4d4; color:#7a5b00; padding:2px 7px; border-radius:5px;
+    font-family:'SF Mono',ui-monospace,Menlo,monospace; font-size:.86em; font-weight:500;}
+  strong{font-weight:700;}
+  em{font-style:normal; background:linear-gradient(transparent 62%,var(--amber-soft) 62%); padding:0 2px;}
+
+  /* Blockquote / callout */
+  blockquote{margin:18px 0; padding:14px 20px; background:var(--paper-2);
+    border-left:4px solid var(--amber); border-radius:0 10px 10px 0; color:#41342a;
+    box-shadow:0 1px 0 rgba(0,0,0,.03);}
+  blockquote.warn{border-left-color:var(--up); background:#fdf3f1;}
+  blockquote p{margin:6px 0;}
+
+  /* Tables */
+  .tbl{overflow-x:auto; margin:18px 0; border:1px solid var(--line); border-radius:12px;}
+  table{border-collapse:collapse; width:100%; font-size:14.5px; background:var(--paper-2);}
+  th,td{padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top;}
+  thead th{background:var(--navy); color:var(--paper); font-weight:600; white-space:nowrap; border-bottom:none;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:nth-child(even){background:#faf7f0;}
+  td code{font-size:.82em;}
+
+  /* Pre / ascii */
+  pre{background:var(--navy); color:#d8def0; padding:20px 22px; border-radius:12px;
+    overflow-x:auto; font-family:'SF Mono',ui-monospace,Menlo,monospace; font-size:13px; line-height:1.55;
+    margin:18px 0;}
+  pre.bars{color:var(--amber-soft);}
+
+  /* Allocation chart */
+  .alloc{margin:20px 0; display:flex; flex-direction:column; gap:10px;}
+  .alloc-row{display:grid; grid-template-columns:130px 1fr 56px; align-items:center; gap:12px; font-size:14px;}
+  .alloc-row .lbl{font-weight:600;}
+  .alloc-bar{height:22px; border-radius:6px; background:linear-gradient(90deg,var(--amber),var(--amber-soft));}
+  .alloc-row .pct{text-align:right; font-variant-numeric:tabular-nums; font-weight:700; color:var(--navy);}
+  .alloc-row.c1 .alloc-bar{background:linear-gradient(90deg,#0f1c33,#33476e);}
+  .alloc-row.c2 .alloc-bar{background:linear-gradient(90deg,#e0a106,#f4d77e);}
+
+  /* TOC */
+  nav.toc{background:var(--paper-2); border:1px solid var(--line); border-radius:14px;
+    padding:20px 24px; margin-bottom:40px;}
+  nav.toc h4{margin:0 0 12px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);}
+  nav.toc ol{margin:0; padding:0; list-style:none; columns:2; column-gap:32px; font-size:14.5px;}
+  nav.toc li{margin:6px 0; break-inside:avoid;}
+  nav.toc a{color:var(--ink); border:none;}
+  nav.toc a:hover{color:var(--amber);}
+  nav.toc .n{color:var(--amber); font-weight:700; margin-right:8px; font-variant-numeric:tabular-nums;}
+
+  hr{border:none; border-top:1px solid var(--line); margin:40px 0;}
+  ul,ol{padding-left:22px;}
+  li{margin:6px 0;}
+  .lead{font-size:17px;}
+  footer{color:var(--muted); font-size:13px; text-align:center; margin-top:60px; padding-top:24px; border-top:1px solid var(--line);}
+
+  @media (max-width:680px){
+    .hero h1{font-size:34px;}
+    nav.toc ol{columns:1;}
+    .alloc-row{grid-template-columns:96px 1fr 46px; font-size:13px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <span class="badge">🇱🇦 라오스 현지 운영 · 디지털자산 파일럿 라이선스 체계</span>
+    <h1>Cryptalk 토크노믹스 <span class="tk">$TALK</span></h1>
+    <p class="sub">커뮤니티 기여를 자산으로 — 기여로 벌고, 혜택으로 쓰며, 쓰는 만큼 태운다.</p>
+    <div class="meta-grid">
+      <span><b>작성일</b> 2026-06-17</span>
+      <span><b>총 발행</b> 1,000,000,000 TALK (고정)</span>
+      <span><b>발행 주체</b> 라오스 현지 법인</span>
+      <span><b>제품 타깃</b> 한국어 크립토 커뮤니티</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc">
+    <h4>목차</h4>
+    <ol>
+      <li><a href="#s0"><span class="n">0</span>한 줄 요약</a></li>
+      <li><a href="#s1"><span class="n">1</span>설계 배경 — 왜 토큰인가</a></li>
+      <li><a href="#s2"><span class="n">2</span>토큰 개요</a></li>
+      <li><a href="#s3"><span class="n">3</span>공급 분배</a></li>
+      <li><a href="#s4"><span class="n">4</span>발행 — 어떻게 버는가</a></li>
+      <li><a href="#s5"><span class="n">5</span>효용 — 어디에 쓰는가</a></li>
+      <li><a href="#s6"><span class="n">6</span>어뷰징 방지</a></li>
+      <li><a href="#s7"><span class="n">7</span>소각 &amp; 가치 환류</a></li>
+      <li><a href="#s8"><span class="n">8</span>단계별 롤아웃</a></li>
+      <li><a href="#s9"><span class="n">9</span>핵심 파라미터</a></li>
+      <li><a href="#s10"><span class="n">10</span>리스크 &amp; 규제 (라오스)</a></li>
+      <li><a href="#sa"><span class="n">A</span>스키마 확장 초안</a></li>
+      <li><a href="#sb"><span class="n">B</span>발행–소각 균형</a></li>
+    </ol>
+  </nav>
+
+  <blockquote class="warn">
+    <p>⚠️ <strong>전제 메모:</strong> 본 문서는 "제품(콘텐츠·커뮤니티)은 한국어 사용자 대상, <strong>법인·토큰 발행·라이선스·자금흐름은 라오스 현지</strong>"라는 구조를 가정한다. 타깃 사용자도 라오스 현지(라오어/태국어권)라면 6·8·10장과 제품 UI 전제가 달라지므로 알려주면 재조정한다.</p>
+  </blockquote>
+
+  <section id="s0">
+    <h2><span class="num">0</span>한 줄 요약</h2>
+    <p class="lead">Cryptalk의 기존 <strong>오프체인 포인트 시스템(<code>PointLog</code>)을 온체인 토큰 $TALK로 승격</strong>시켜, "시세를 보러 왔다가 글을 읽고, 글을 읽으러 왔다가 시세를 본다"는 코인판형 순환 구조에 <strong>경제적 보상·소각 루프</strong>를 더한다. 핵심은 <em>기여(글·댓글·분석·추천)로 벌고, 혜택(프리미엄·노출·거버넌스)으로 쓰며, 쓰는 만큼 태운다</em>.</p>
+  </section>
+
+  <section id="s1">
+    <h2><span class="num">1</span>설계 배경 — 왜 토큰인가</h2>
+    <p><code>coinpan-site-analysis.md</code> 7장에서 정리한 코인판의 리텐션 장치는 모두 <strong>포인트(비화폐) 기반</strong>이다.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>코인판 장치</th><th>한계</th><th>$TALK로 해결</th></tr></thead>
+      <tbody>
+        <tr><td>활동 포인트 → 레벨</td><td>사이트 밖에서 가치 0, 이탈 시 소멸</td><td>자산화 → 이탈 비용 발생, 외부 유동성</td></tr>
+        <tr><td>출석체크 포인트</td><td>단순 반복, 보상 매력 낮음</td><td>토큰 일일 보상 + 스트릭 가중</td></tr>
+        <tr><td>손익인증/추천 문화</td><td>명예 보상에 그침</td><td>추천이 보상 분배(큐레이션 마이닝)에 직결</td></tr>
+        <tr><td>비회원 제한(가입 퍼널)</td><td>가입 후 동기 약화</td><td>보유/스테이킹 기반 등급 혜택으로 지속 동기</td></tr>
+      </tbody>
+    </table></div>
+    <p>현재 스키마(<code>PointLog.action = post | comment | attendance</code>)는 이미 <strong>"행동 → 적립" 원장</strong>이다. $TALK는 이 원장을 그대로 <strong>발행 근거(emission ledger)</strong>로 재사용한다. 즉 토크노믹스는 신규 시스템이 아니라 <strong>기존 포인트 회계의 화폐화</strong>다.</p>
+  </section>
+
+  <section id="s2">
+    <h2><span class="num">2</span>토큰 개요</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>항목</th><th>값</th></tr></thead>
+      <tbody>
+        <tr><td>명칭 / 티커</td><td>Cryptalk Token / <strong>$TALK</strong></td></tr>
+        <tr><td>발행 주체</td><td><strong>라오스 현지 법인</strong> (디지털자산 파일럿/라이선스 보유 또는 라이선스 파트너 제휴)</td></tr>
+        <tr><td>표준</td><td>ERC-20 (L2 우선: Base 또는 Arbitrum — 가스비·접근성·글로벌 유동성)</td></tr>
+        <tr><td>총 발행량</td><td><strong>1,000,000,000 TALK (10억, 하드캡 고정)</strong></td></tr>
+        <tr><td>인플레이션</td><td>추가 발행 없음. 모든 보상은 사전 할당된 "커뮤니티 보상 풀"에서만 지급</td></tr>
+        <tr><td>소수점</td><td>18 decimals</td></tr>
+        <tr><td>초기 비유통 처리</td><td>컨트랙트 vesting / 타임락으로 잠금, 온체인 공개</td></tr>
+        <tr><td>회계 통화</td><td>내부 가치 표기는 <strong>USD 기준</strong> (LAK 변동성·환관리 회피, 10장)</td></tr>
+      </tbody>
+    </table></div>
+    <blockquote><p><strong>왜 고정 캡인가:</strong> 무한 발행형 리워드 토큰은 리테일에서 "찍어내는 코인" 인식이 강해 신뢰를 잃는다. 고정 캡 + 소각으로 <strong>디플레이션 압력</strong>을 명시한다.</p></blockquote>
+    <blockquote><p><strong>왜 라오스 발행인가:</strong> 라오스는 2021년부터 정부 주도 <strong>디지털자산(채굴·거래) 파일럿</strong>을 운용하며 라이선스 기반 발행·거래 경로를 제공한다. 한국 대비 토큰 발행·거래소 라이선스의 명문 경로가 있어 <strong>발행 주체를 라오스 현지 법인으로 두는 것</strong>이 규제 명확성에 유리하다(실제 적격성·범위는 BOL/MTC 사전 확인 필수 — 10장).</p></blockquote>
+  </section>
+
+  <section id="s3">
+    <h2><span class="num">3</span>공급 분배 (Allocation)</h2>
+    <p>총 10억 TALK 기준.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>분류</th><th>비중</th><th>수량(TALK)</th><th>베스팅</th><th>목적</th></tr></thead>
+      <tbody>
+        <tr><td><strong>커뮤니티 보상 풀</strong></td><td>40%</td><td>400,000,000</td><td>5년 점감 방출(4.1)</td><td>글·댓글·추천·출석·분석 기여 보상</td></tr>
+        <tr><td>생태계 / 유동성</td><td>15%</td><td>150,000,000</td><td>DEX 유동성 + 마켓메이킹</td><td>가격 안정·상장</td></tr>
+        <tr><td>팀 / 기여자</td><td>15%</td><td>150,000,000</td><td>12개월 클리프 + 36개월 선형</td><td>개발·운영 인센티브</td></tr>
+        <tr><td>트레저리(DAO)</td><td>15%</td><td>150,000,000</td><td>거버넌스 집행, 멀티시그</td><td>운영비·그랜트·바이백 재원</td></tr>
+        <tr><td>투자자 / 전략 파트너</td><td>10%</td><td>100,000,000</td><td>6개월 클리프 + 24개월 선형</td><td>초기 자본</td></tr>
+        <tr><td>에어드랍 / 부트스트랩</td><td>5%</td><td>50,000,000</td><td>TGE 50%, 6개월 분할 50%</td><td>초기 유저(코인판 이주 등) 확보</td></tr>
+      </tbody>
+    </table></div>
+    <div class="alloc">
+      <div class="alloc-row"><span class="lbl">커뮤니티 보상</span><span class="alloc-bar" style="width:100%"></span><span class="pct">40%</span></div>
+      <div class="alloc-row c1"><span class="lbl">생태계/유동성</span><span class="alloc-bar" style="width:37.5%"></span><span class="pct">15%</span></div>
+      <div class="alloc-row c1"><span class="lbl">팀/기여자</span><span class="alloc-bar" style="width:37.5%"></span><span class="pct">15%</span></div>
+      <div class="alloc-row c1"><span class="lbl">트레저리</span><span class="alloc-bar" style="width:37.5%"></span><span class="pct">15%</span></div>
+      <div class="alloc-row c1"><span class="lbl">투자자</span><span class="alloc-bar" style="width:25%"></span><span class="pct">10%</span></div>
+      <div class="alloc-row c2"><span class="lbl">에어드랍</span><span class="alloc-bar" style="width:12.5%"></span><span class="pct">5%</span></div>
+    </div>
+    <blockquote><p><strong>원칙:</strong> 커뮤니티(보상+에어드랍) 합계 45% ≥ 팀·투자자 합계 25%. "유저가 최대 지분"을 명시해 채굴형 커뮤니티 토큰의 정당성을 확보한다.</p></blockquote>
+  </section>
+
+  <section id="s4">
+    <h2><span class="num">4</span>발행(Emission) — 어떻게 버는가</h2>
+    <h3>4.1 커뮤니티 보상 풀 방출 스케줄</h3>
+    <p>400M을 <strong>반감기형 5년 점감</strong>으로 방출. 초기 활동 보상을 두텁게 하되 장기 희석 방지.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>연차</th><th>방출 비중</th><th>방출량(TALK)</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>Year 1</td><td>35%</td><td>140,000,000</td><td>부트스트랩(가장 두터움)</td></tr>
+        <tr><td>Year 2</td><td>25%</td><td>100,000,000</td><td></td></tr>
+        <tr><td>Year 3</td><td>20%</td><td>80,000,000</td><td></td></tr>
+        <tr><td>Year 4</td><td>12%</td><td>48,000,000</td><td></td></tr>
+        <tr><td>Year 5</td><td>8%</td><td>32,000,000</td><td>이후 트레저리 재원으로 연장</td></tr>
+      </tbody>
+    </table></div>
+    <p>연차 풀은 다시 <strong>주(week) 단위 예산</strong>으로 쪼개진다. 한 주의 보상 풀은 그 주 전체 기여 점수 비례로 분배 → <strong>고정 예산 / 변동 단가</strong> 구조(=인플레이션 방어).</p>
+
+    <h3>4.2 행동별 기여 점수 (현 <code>PointLog</code>/<code>Vote</code> 매핑)</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>행동</th><th>스키마 근거</th><th>기본 weight</th><th>보상 트리거</th></tr></thead>
+      <tbody>
+        <tr><td>게시글 작성</td><td><code>PointLog.action="post"</code></td><td>10</td><td>작성 + 최소 체류/조회</td></tr>
+        <tr><td>댓글 작성</td><td><code>action="comment"</code></td><td>3</td><td>작성</td></tr>
+        <tr><td>출석체크</td><td><code>action="attendance"</code>, <code>day</code> UNIQUE</td><td>5 (스트릭 가중)</td><td>1일 1회(KST), 연속 보너스</td></tr>
+        <tr><td>받은 추천</td><td><code>Vote.value=+1</code>, <code>Post.upvotes</code></td><td>8 / 순추천</td><td><strong>큐레이션 마이닝</strong></td></tr>
+        <tr><td>한 추천(투표 행위)</td><td><code>Vote</code></td><td>1</td><td>추천한 글이 상위로 가면 추가 보상</td></tr>
+        <tr><td>검증된 분석글</td><td><code>priceAtPost</code> + 사후 적중</td><td>30</td><td>"예측 검증" 연계 ★</td></tr>
+      </tbody>
+    </table></div>
+    <blockquote><p><strong>검증된 분석글 보너스</strong>가 핵심 차별점이다. 스키마에 이미 <code>priceAtPost</code>/<code>priceSymbol</code>이 있어, 작성 시점 가격 대비 실제 가격으로 적중도를 계산해 <strong>맞춘 분석가에게 가중 보상</strong>한다. 코인판의 "유저 자유 기고 품질 편차" 문제를 경제적 인센티브로 교정.</p></blockquote>
+
+    <h3>4.3 큐레이션 마이닝 (추천 = 채굴)</h3>
+    <ul>
+      <li>글 보상의 일부를 <strong>그 글을 일찍 추천한 유저들에게 분배</strong>(<code>Vote</code> 타임스탬프 기준).</li>
+      <li>추천이 단순 명예가 아니라 "좋은 글을 먼저 발굴하면 보상" → HOT게시판/핫코멘트 문화를 보상 루프로 전환.</li>
+    </ul>
+
+    <h3>4.4 마이그레이션 보너스 (포인트 → 토큰)</h3>
+    <p>TGE 시점 기존 <code>User.points</code> 잔액을 스냅샷해 <strong>에어드랍 풀(5%)에서 환산 지급</strong>. "기존 활동이 자산이 된다"는 메시지로 헤비유저 이주를 유도. (배포·청구는 라오스 법인 발행 컨트랙트 기준, 10.2 국경 간 판매 검토 반영)</p>
+  </section>
+
+  <section id="s5">
+    <h2><span class="num">5</span>효용(Utility) — 어디에 쓰는가</h2>
+    <p>토큰은 <strong>반드시 쓸 데가 있어야</strong> 발행 압력을 흡수한다. 사용처는 곧 소각·재순환 경로다.</p>
+    <h3>5.1 소비형(소각 발생)</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>효용</th><th>설명</th><th>토큰 흐름</th></tr></thead>
+      <tbody>
+        <tr><td><strong>글 상단 노출/부스트</strong></td><td>코인판 AD 고정의 유저판. 자기 글/분석을 일정시간 상단 고정</td><td>50% 소각 / 50% 트레저리</td></tr>
+        <tr><td><strong>프리미엄 분석 열람</strong></td><td>공식 시장 브리핑 일부를 토큰 페이월</td><td>50% 소각 / 50% 작성자</td></tr>
+        <tr><td>닉네임/프로필 꾸미기, 배지</td><td>코스메틱</td><td>70% 소각</td></tr>
+        <tr><td>비회원·저레벨 제한 해제권</td><td>댓글 즉시열람 등 구매</td><td>100% 소각</td></tr>
+        <tr><td>신고/검증 예치금</td><td>분석 신뢰도 챌린지 시 스테이크, 패배 시 소각·승자 분배</td><td>조건부 소각</td></tr>
+      </tbody>
+    </table></div>
+    <h3>5.2 보유/스테이킹형(잠금 → 유통 축소)</h3>
+    <div class="tbl"><table>
+      <thead><tr><th>효용</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td><strong>등급(Tier) 혜택</strong></td><td>보유/스테이킹량에 따라 광고 제거, 수수료 할인, 분석 무료열람, 큐레이션 보상 가중</td></tr>
+        <tr><td><strong>거버넌스 투표권</strong></td><td>게시판 신설/삭제, 보상 weight 조정, 트레저리 집행 (veToken식 잠금가중 가능)</td></tr>
+        <tr><td><strong>분석가 스테이킹</strong></td><td>분석글 작성 시 토큰 예치 → 적중 시 보상↑, 틀리면 슬래시(품질 본드)</td></tr>
+        <tr><td>포트폴리오 프리미엄</td><td><code>PortfolioItem</code> 기반 고급 분석/알림을 스테이커에게 개방</td></tr>
+      </tbody>
+    </table></div>
+    <h3>5.3 거버넌스 범위 (DAO)</h3>
+    <p>트레저리(15%)와 보상 파라미터를 점진적으로 커뮤니티에 이양: ① 행동별 weight 조정 ② 신규 코인 포럼/게시판 상장 제안·투표 ③ 그랜트(분석가·번역·개발) 집행 ④ 바이백&amp;소각 비율 결정.</p>
+  </section>
+
+  <section id="s6">
+    <h2><span class="num">6</span>어뷰징 방지 (Sybil / 농사 방지)</h2>
+    <p>채굴형 커뮤니티 토큰의 최대 리스크. 보상 원장이 곧 공격면이다.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>위협</th><th>방어</th></tr></thead>
+      <tbody>
+        <tr><td>다계정 출석/도배</td><td>보상 자격에 <strong>stake/보유 하한</strong>, 가입 인증(이메일+소셜, 추후 onchain reputation)</td></tr>
+        <tr><td>셀프/품앗이 추천</td><td>동일 IP·기기·상호추천 그래프 탐지, 추천 보상에 <strong>추천자 다양성 가중</strong></td></tr>
+        <tr><td>저품질 양산 글</td><td>weight에 <strong>조회 체류·고유 추천자 수</strong> 반영, 순추천(up−down) 음수면 0</td></tr>
+        <tr><td>봇 댓글</td><td>댓글 weight 낮음(3) + 속도 제한 + 반복 텍스트 패널티</td></tr>
+        <tr><td>분석 찍기</td><td>분석 보너스는 <strong>본드 스테이킹 + 사후 검증</strong> 통과분만 지급</td></tr>
+        <tr><td>추천 매수</td><td>보상은 즉시가 아닌 <strong>에포크 정산</strong>(주 단위), 정산 전 어뷰징 무효화</td></tr>
+      </tbody>
+    </table></div>
+    <blockquote><p>보상은 <strong>클레임형(주간 정산 후 사용자가 청구)</strong>으로 설계해, 정산 기간 동안 부정 적립을 회수할 수 있게 한다.</p></blockquote>
+  </section>
+
+  <section id="s7">
+    <h2><span class="num">7</span>소각 &amp; 가치 환류 (Sink / Value Accrual)</h2>
+    <p>고정 캡이므로 <strong>순환·소각 설계가 가치의 핵심</strong>이다.</p>
+    <ol>
+      <li><strong>사용처 소각</strong>(5.1) — 부스트/코스메틱/해제권의 50~100%를 영구 소각.</li>
+      <li><strong>수익 바이백&amp;번</strong> — 광고·제휴·프리미엄 매출의 일정 비율로 시장에서 $TALK 매입 후 소각.</li>
+      <li><strong>스테이킹 잠금</strong> — 등급·거버넌스·분석 본드로 유통량을 묶어 <em>유효 유통량</em> 축소.</li>
+      <li><strong>미클레임 만료</strong> — 일정 기간 미청구 보상은 풀로 환수(롱테일 인플레 방지).</li>
+    </ol>
+    <p>순효과: <em>활동↑ → 사용처 매출↑ → 소각↑ → 희소성↑</em>. 5년차 이후 소각이 방출을 추월하도록 파라미터를 잡는 것이 목표(net-deflationary).</p>
+  </section>
+
+  <section id="s8">
+    <h2><span class="num">8</span>단계별 롤아웃</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>단계</th><th>토큰 상태</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Phase 0 (현재)</strong></td><td>오프체인 포인트만</td><td><code>PointLog</code>/<code>Vote</code>/출석 운영, 데이터 축적(어뷰징 베이스라인)</td></tr>
+        <tr><td><strong>Phase 1</strong></td><td>오프체인 "$TALK 포인트"</td><td>포인트를 TALK 단위로 리브랜딩, 사용처 가동 — <strong>온체인 전 경제 검증</strong></td></tr>
+        <tr><td><strong>Phase 2</strong></td><td>TGE + 온체인</td><td>ERC-20 배포, 포인트→토큰 마이그레이션, DEX 유동성, 에어드랍</td></tr>
+        <tr><td><strong>Phase 3</strong></td><td>스테이킹·등급</td><td>Tier 혜택, 분석 본드, 큐레이션 마이닝 온체인화</td></tr>
+        <tr><td><strong>Phase 4</strong></td><td>DAO</td><td>트레저리·파라미터 거버넌스 이양, 바이백&amp;번 자동화</td></tr>
+      </tbody>
+    </table></div>
+    <blockquote><p><strong>권고:</strong> Phase 1에서 <strong>오프체인으로 경제(발행/소각/물가)를 충분히 튜닝한 뒤</strong> TGE. 토큰을 먼저 띄우고 경제를 맞추면 되돌릴 수 없다.</p></blockquote>
+  </section>
+
+  <section id="s9">
+    <h2><span class="num">9</span>핵심 파라미터 (초기값 · 거버넌스로 조정)</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>파라미터</th><th>초기값</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>총 발행</td><td>1,000,000,000</td><td>고정</td></tr>
+        <tr><td>주간 커뮤니티 보상 예산</td><td>연차 풀 ÷ 52</td><td>4.1 스케줄</td></tr>
+        <tr><td>게시글:댓글:출석:추천:분석 weight</td><td>10:3:5:8:30</td><td>4.2</td></tr>
+        <tr><td>출석 스트릭 보너스</td><td>7일 +20%, 30일 +50%</td><td>상한</td></tr>
+        <tr><td>부스트 소각 비율</td><td>50%</td><td>5.1</td></tr>
+        <tr><td>바이백&amp;번 매출 비율</td><td>매출의 20~30%</td><td>7장</td></tr>
+        <tr><td>분석 본드 슬래시율</td><td>예치의 50%</td><td>5.2</td></tr>
+        <tr><td>보상 정산 주기</td><td>주 1회(에포크)</td><td>6장</td></tr>
+        <tr><td>보상 클레임 만료</td><td>90일</td><td>7장</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="s10">
+    <h2><span class="num">10</span>리스크 &amp; 규제 메모 (라오스 기준)</h2>
+    <blockquote class="warn"><p>본 절은 일반 공개 정보 기반 가이드다. <strong>실제 적격성·라이선스 범위·세율은 라오스 중앙은행(BOL)·기술통신부(MTC) 및 현지 법률자문으로 사전 확정</strong>해야 한다.</p></blockquote>
+
+    <h3>10.1 라오스 디지털자산 라이선스 체계</h3>
+    <ul>
+      <li>라오스는 2021년부터 정부 주도 <strong>디지털자산(채굴·거래) 파일럿</strong>을 운용, BOL·MTC가 감독하고 소수 라이선스 사업자에게 채굴·거래소 운영을 허가해 왔다.</li>
+      <li><strong>토큰 발행/거래소 연계</strong>는 파일럿 라이선스 범위 안에서만 합법 경로가 열린다. → ① 자체 라이선스 취득, 또는 ② <strong>라이선스 보유 현지 파트너와 제휴</strong>(발행·수탁·거래 창구)를 병행 검토.</li>
+      <li>라이선스 조건(자본금, KYC/AML, 정부 분담금·수수료, 보고 의무)을 운영비(트레저리 15%)에 반영.</li>
+    </ul>
+
+    <h3>10.2 토큰 성격 정의(증권성 회피)</h3>
+    <ul>
+      <li>$TALK는 <strong>"이익 배당"이 아니라 유틸리티·소각 토큰</strong>으로 일관 프레이밍. 페이월/부스트/해제권 등 <em>명확한 소비 효용</em>(5.1)을 전면에.</li>
+      <li>스테이킹 "수익"은 배당이 아니라 <strong>활동 보상 풀 분배·등급 혜택</strong>으로 설계·표현.</li>
+      <li>한국 사용자 대상 마케팅이라도 발행·판매 주체는 라오스 법인이므로, <strong>한국 거주자 대상 공모/판매가 한국 규제(가상자산이용자보호법 등)를 트리거하지 않도록</strong> 분리 검토 필요(국경 간 판매 리스크).</li>
+    </ul>
+
+    <h3>10.3 외환·자금흐름(LAK 변동성·자본통제)</h3>
+    <ul>
+      <li>라오스 키프(LAK)는 변동성·평가절하 이력이 크고 외환 관리가 존재 → <strong>내부 회계·효용 가격은 USD(또는 USDC) 기준</strong>으로 운영, LAK 익스포저 최소화.</li>
+      <li>매출 정산·바이백&amp;번(7장) 재원의 통화·송금 경로를 라이선스·외환 규정에 맞게 설계. 스테이블코인 정산 채널 우선.</li>
+    </ul>
+
+    <h3>10.4 인프라·운영</h3>
+    <ul>
+      <li><strong>전력/채굴 의존 아님:</strong> 본 프로젝트는 PoW 채굴이 아니라 L2 기반 발행이므로 라오스 수력발전·채굴 전력 정책(가뭄기 채굴 제한 등) 리스크와 무관. "채굴 코인"으로 오해되지 않게 커뮤니케이션.</li>
+      <li><strong>현지 운영 리스크:</strong> 인터넷·결제·인력 인프라, 규정 변경 빈도를 감안해 핵심 인프라(체인·DEX·수탁)는 글로벌 L2/스테이블코인 위에 두고, 라오스는 <strong>법인·라이선스·정산 레이어</strong>로 활용.</li>
+    </ul>
+
+    <h3>10.5 공통</h3>
+    <ul>
+      <li><strong>거래소 상장/유동성:</strong> 초기엔 DEX(L2) 중심, 가두리 방지 위해 유동성 15% 충분히 배정. 라이선스 범위 내 현지 거래 창구는 파트너 경유.</li>
+      <li><strong>가격 변동성 → UX 악화:</strong> 부스트/열람 가격을 토큰 고정수량이 아니라 <strong>USD 페그(시점 환산)</strong>로 책정.</li>
+      <li><strong>보상 인플레 체감:</strong> 4.1 점감 + 7장 소각이 핵심. "방출 vs 소각" 대시보드 공개(투명성 = 신뢰).</li>
+    </ul>
+  </section>
+
+  <hr>
+
+  <section id="sa">
+    <h2><span class="num">A</span>부록 — 온체인/스키마 확장 초안</h2>
+    <p>현 <code>prisma/schema.prisma</code>에 더해질 토큰 회계 테이블(오프체인 거울 + 온체인 정산).</p>
+    <pre>TokenAccount   (userId, balanceOffchain, walletAddress?, stakedAmount, tier, updatedAt)
+EmissionEpoch  (id, weekStart, weekEnd, budgetTalk, totalWeight, status[open|settling|closed])
+RewardEntry    (epochId, userId, sourceAction[post|comment|vote|attendance|analysis],
+                refId, weight, talkAmount, claimed, expiresAt)   ← PointLog의 토큰판
+TokenSink      (id, userId, kind[boost|cosmetic|paywall|unlock|bond], talkSpent,
+                burned, toTreasury, refId, createdAt)
+StakePosition  (userId, amount, lockUntil, multiplier, purpose[tier|gov|analysisBond])
+AnalysisBond   (postId, userId, staked, predicted, resolvedPrice?, hit?, payout, slashed)
+BuybackBurn    (id, source[ads|referral|premium], revenue, talkBought, talkBurned, txHash, createdAt)</pre>
+    <blockquote><p><code>RewardEntry</code>는 사실상 <code>PointLog</code>의 토큰 버전이다. Phase 1에서는 <code>talkAmount</code>만 오프체인으로 쌓고, Phase 2 TGE에서 <code>walletAddress</code>로 청구 가능하게 연결한다.</p></blockquote>
+  </section>
+
+  <section id="sb">
+    <h2><span class="num">B</span>부록 — 발행–소각 균형 목표 (개념도)</h2>
+    <pre class="bars">        방출(Emission)                     소각(Sink)
+Year1  ████████████████ 140M     기여보상   ░░ 낮음 (부트스트랩기)
+Year2  ███████████ 100M                    ░░░░ 사용처 가동
+Year3  █████████ 80M                       ░░░░░░ 바이백 시작
+Year4  █████ 48M                           ░░░░░░░░ 소각 가속
+Year5  ███ 32M                             ░░░░░░░░░░ 소각 ≥ 방출 (목표)
+                                            ↓
+                              Net-deflationary 전환점</pre>
+    <h3>근거 자료</h3>
+    <ul>
+      <li><code>docs/coinpan-site-analysis.md</code> — 커뮤니티·포인트·리텐션·수익모델 분석(7·8·9장)</li>
+      <li><code>prisma/schema.prisma</code> — <code>User.points/level</code>, <code>PointLog</code>, <code>Vote</code>, <code>Post.priceAtPost</code>, <code>PortfolioItem</code></li>
+      <li>앱 기능: <code>app/attendance</code>, <code>app/analysis</code>, <code>app/free</code>, <code>VoteButtons</code>, <code>PortfolioForm</code></li>
+    </ul>
+  </section>
+
+  <footer>
+    Cryptalk 토크노믹스 · $TALK · 라오스 현지 운영 · 2026-06-17 · 내부 설계 기준 문서
+  </footer>
+
+</div>
+</body>
+</html>

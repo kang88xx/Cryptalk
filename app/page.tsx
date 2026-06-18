@@ -2,13 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPostDate } from "@/lib/format";
 import TickerTable from "@/components/TickerTable";
-import CryptoCalendar from "@/components/CryptoCalendar";
 import MarketCards from "@/components/MarketCards";
+import SignalRadar from "@/components/SignalRadar";
+import ListingsStrip from "@/components/ListingsStrip";
+import UpcomingEvents from "@/components/UpcomingEvents";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const now = new Date();
   const [recentPosts, hotPosts, analysisPosts] = await Promise.all([
     prisma.post.findMany({
       where: { board: { slug: "free" } },
@@ -33,7 +34,9 @@ export default async function Home() {
   return (
     <div className="flex flex-col gap-6">
       <MarketCards />
-      <CryptoCalendar initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
+      <SignalRadar />
+      <ListingsStrip />
+      <UpcomingEvents />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
       <section className="border border-line bg-white">
         <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
