@@ -195,6 +195,8 @@ export default function CryptoCalendar({
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const firstWeekday = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7; // 월요일 시작
 
+  // 이벤트는 KST 날짜로 배치 — 홈 위젯·시각 라벨(KST)과 일치시켜 자정 근처 이벤트
+  // 가 홈/캘린더에서 다른 날에 표시되는 문제를 방지한다.
   const byDay = new Map<number, CalendarEvent[]>();
   const tbaEvents: CalendarEvent[] = [];
   for (const ev of visibleEvents) {
@@ -202,14 +204,17 @@ export default function CryptoCalendar({
       tbaEvents.push(ev);
       continue;
     }
-    const day = new Date(ev.date).getUTCDate();
+    const day = new Date(new Date(ev.date).getTime() + KST_OFFSET).getUTCDate();
     const list = byDay.get(day) ?? [];
     list.push(ev);
     byDay.set(day, list);
   }
 
-  const today = new Date();
-  const isThisMonth = today.getFullYear() === year && today.getMonth() + 1 === month;
+  // 오늘 강조도 KST 기준 — 마운트 후 설정되는 now 상태 사용(하이드레이션 안전 + 렌더 순수성)
+  const nowKst = now > 0 ? new Date(now + KST_OFFSET) : null;
+  const isThisMonth =
+    !!nowKst && nowKst.getUTCFullYear() === year && nowKst.getUTCMonth() + 1 === month;
+  const todayDay = nowKst ? nowKst.getUTCDate() : -1;
 
   const cells: (number | null)[] = [
     ...Array.from({ length: firstWeekday }, () => null),
@@ -324,7 +329,7 @@ export default function CryptoCalendar({
       ) : (
         <div className="grid grid-cols-7">
           {cells.map((day, i) => {
-            const isToday = day != null && isThisMonth && day === today.getDate();
+            const isToday = day != null && isThisMonth && day === todayDay;
             return (
             <div
               key={i}
@@ -431,7 +436,7 @@ export default function CryptoCalendar({
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                        timeZone: "UTC",
+                        timeZone: "Asia/Seoul",
                       });
                       return t ? `${ko} · ${kstHm(t)} KST` : ko;
                     })()}
