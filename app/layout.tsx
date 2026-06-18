@@ -4,7 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import TickerBar from "@/components/TickerBar";
 import LogoStrip from "@/components/LogoStrip";
-import IndexBanner from "@/components/IndexBanner";
+import MarketBar from "@/components/MarketBar";
 import AppPromo from "@/components/AppPromo";
 
 const geistMono = Geist_Mono({
@@ -25,8 +25,8 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        {/* 상단 배너 — 나스닥·코스피·코스닥 지수 */}
-        <IndexBanner />
+        {/* 상단 마켓바 — 크립토·주가지수·원자재/환율·코인 미니차트 + 동시접속·언어 */}
+        <MarketBar />
         <Header />
         <TickerBar />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
