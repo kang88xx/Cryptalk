@@ -1,0 +1,292 @@
+"use client";
+
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  forceSimulation,
+  forceManyBody,
+  forceCollide,
+  forceX,
+  forceY,
+  type Simulation,
+} from "d3-force";
+
+type BubbleCoin = {
+  id: string;
+  symbol: string;
+  name: string;
+  image: string;
+  priceUsd: number | null;
+  marketCap: number | null;
+  marketCapRank: number | null;
+  volume24h: number | null;
+  change1h: number | null;
+  change24h: number | null;
+  change7d: number | null;
+  change30d: number | null;
+  change1y: number | null;
+};
+
+type Period = "1h" | "24h" | "7d" | "30d";
+const PERIODS: { key: Period; label: string; field: keyof BubbleCoin }[] = [
+  { key: "1h", label: "1H", field: "change1h" },
+  { key: "24h", label: "24H", field: "change24h" },
+  { key: "7d", label: "7D", field: "change7d" },
+  { key: "30d", label: "1M", field: "change30d" },
+];
+
+type Node = {
+  coin: BubbleCoin;
+  change: number;
+  r: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+};
+
+const COUNT = 44; // 박스를 채울 만큼의 시총 상위 N개
+
+// Cryptalk 관례: 상승=빨강 / 하락=남보라
+function colorFor(change: number): string {
+  if (change > 0.05) return "#dc2626"; // 상승: 빨강
+  if (change < -0.05) return "#4853c4"; // 하락: 남보라(indigo-700)
+  return "#a0a6bb"; // 보합: navy-300
+}
+
+export default function BubbleMap() {
+  const [coins, setCoins] = useState<BubbleCoin[]>([]);
+  const [period, setPeriod] = useState<Period>("24h");
+  const [hover, setHover] = useState<string | null>(null);
+  const [, setTick] = useState(0);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const nodesRef = useRef<Node[]>([]);
+  const simRef = useRef<Simulation<Node, undefined> | null>(null);
+  const sizeRef = useRef(size);
+  sizeRef.current = size;
+
+  // 컨테이너 실제 크기 측정 → 좌표계를 박스에 맞춰 버블이 꽉 차게
+  useLayoutEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setSize({ w: Math.round(width), h: Math.round(height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // 프론트는 내 API만 본다(외부 호출 X)
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/bubbles");
+        const json = await res.json();
+        if (alive && Array.isArray(json.coins)) setCoins(json.coins.slice(0, COUNT));
+      } catch {
+        /* 실패 시 직전 상태 유지 */
+      }
+    };
+    load();
+    const t = setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+
+  const field = useMemo(
+    () => PERIODS.find((p) => p.key === period)!.field,
+    [period]
+  );
+
+  // 노드 구성 + 끊임없이 움직이는 force 시뮬레이션 (cryptobubbles 느낌)
+  useEffect(() => {
+    const { w: W, h: H } = size;
+    if (coins.length === 0 || W === 0 || H === 0) return;
+
+    const valid = coins
+      .map((c) => ({ c, change: (c[field] as number | null) ?? null }))
+      .filter((x): x is { c: BubbleCoin; change: number } => x.change != null);
+    if (valid.length === 0) return;
+
+    // 박스를 ~62% 채우도록 반지름 스케일을 동적으로 계산 (버블이 가득 차 보이게)
+    const weights = valid.map((v) => Math.sqrt(Math.abs(v.change) + 0.4));
+    const sumW2 = weights.reduce((s, wt) => s + wt * wt, 0);
+    const targetArea = 0.62 * W * H;
+    const k = Math.sqrt(targetArea / (Math.PI * sumW2));
+    const MAX_R = Math.min(W, H) * 0.26;
+    const MIN_R = Math.max(8, Math.min(W, H) * 0.035);
+
+    const prev = new Map(nodesRef.current.map((n) => [n.coin.id, n]));
+    const nodes: Node[] = valid.map(({ c, change }, i) => {
+      const r = Math.max(MIN_R, Math.min(MAX_R, k * weights[i]));
+      const old = prev.get(c.id);
+      return {
+        coin: c,
+        change,
+        r,
+        x: old?.x ?? Math.random() * W,
+        y: old?.y ?? Math.random() * H,
+        vx: old?.vx ?? (Math.random() - 0.5) * 2,
+        vy: old?.vy ?? (Math.random() - 0.5) * 2,
+      };
+    });
+    nodesRef.current = nodes;
+
+    simRef.current?.stop();
+    const sim = forceSimulation(nodes)
+      .velocityDecay(0.12) // 낮은 마찰 → 계속 떠다님
+      .force("charge", forceManyBody().strength(1.5))
+      .force("x", forceX(W / 2).strength(0.012))
+      .force("y", forceY(H / 2).strength(0.012))
+      .force(
+        "collide",
+        forceCollide<Node>()
+          .radius((d) => d.r + 1.5)
+          .strength(0.9)
+          .iterations(3)
+      )
+      .alpha(0.35)
+      .alphaDecay(0) // 절대 멈추지 않음 → 영구 모션
+      .on("tick", () => {
+        const { w, h } = sizeRef.current;
+        for (const n of nodes) {
+          // 부유 모션: 매 틱 미세한 랜덤 임펄스
+          n.vx += (Math.random() - 0.5) * 0.18;
+          n.vy += (Math.random() - 0.5) * 0.18;
+          // 벽 충돌 반사 → 박스 안에 가둠
+          if (n.x < n.r) {
+            n.x = n.r;
+            n.vx = Math.abs(n.vx) * 0.6;
+          } else if (n.x > w - n.r) {
+            n.x = w - n.r;
+            n.vx = -Math.abs(n.vx) * 0.6;
+          }
+          if (n.y < n.r) {
+            n.y = n.r;
+            n.vy = Math.abs(n.vy) * 0.6;
+          } else if (n.y > h - n.r) {
+            n.y = h - n.r;
+            n.vy = -Math.abs(n.vy) * 0.6;
+          }
+        }
+        setTick((t) => (t + 1) % 1_000_000);
+      });
+    simRef.current = sim;
+
+    return () => {
+      sim.stop();
+    };
+  }, [coins, field, size]);
+
+  const nodes = nodesRef.current;
+  const { w: W, h: H } = size;
+  const hovered = hover ? nodes.find((n) => n.coin.id === hover) ?? null : null;
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* 기간 토글 — 버블 크기·색의 "기준" */}
+      <div className="mb-2 flex gap-1">
+        {PERIODS.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`rounded px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+              period === p.key
+                ? "bg-navy-900 text-white"
+                : "bg-paper2 text-navy-500 hover:bg-navy-100"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        ref={wrapRef}
+        className="relative flex-1 overflow-hidden"
+        onMouseLeave={() => setHover(null)}
+      >
+        {W > 0 && H > 0 && (
+          <svg width={W} height={H} className="block">
+            {nodes.map((n) => (
+              <g
+                key={n.coin.id}
+                transform={`translate(${n.x},${n.y})`}
+                className="cursor-pointer"
+                onMouseEnter={() => setHover(n.coin.id)}
+              >
+                <circle
+                  r={n.r}
+                  fill={colorFor(n.change)}
+                  fillOpacity={hover === n.coin.id ? 0.3 : 0.16}
+                  stroke={colorFor(n.change)}
+                  strokeWidth={1.25}
+                />
+                {n.r > 16 && (
+                  <image
+                    href={n.coin.image}
+                    x={-n.r * 0.4}
+                    y={-n.r * 0.6}
+                    width={n.r * 0.8}
+                    height={n.r * 0.8}
+                    preserveAspectRatio="xMidYMid meet"
+                  />
+                )}
+                <text
+                  textAnchor="middle"
+                  y={n.r > 16 ? n.r * 0.42 : 3}
+                  fontSize={Math.max(7, n.r * 0.3)}
+                  fontWeight={700}
+                  fill={colorFor(n.change)}
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                >
+                  {n.coin.symbol}
+                </text>
+                {n.r > 26 && (
+                  <text
+                    textAnchor="middle"
+                    y={n.r * 0.74}
+                    fontSize={Math.max(6, n.r * 0.22)}
+                    fill={colorFor(n.change)}
+                    style={{ pointerEvents: "none", userSelect: "none" }}
+                  >
+                    {n.change > 0 ? "+" : ""}
+                    {n.change.toFixed(1)}%
+                  </text>
+                )}
+              </g>
+            ))}
+          </svg>
+        )}
+
+        {nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-ink-500">
+            버블맵 로딩 중…
+          </div>
+        )}
+
+        {hovered && (
+          <div className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-navy-950/90 px-2 py-1.5 text-[11px] text-white">
+            <div className="font-semibold">
+              {hovered.coin.name} ({hovered.coin.symbol})
+            </div>
+            <div className="text-navy-100">시총 #{hovered.coin.marketCapRank ?? "-"}</div>
+            <div className="text-navy-100">
+              ${hovered.coin.priceUsd?.toLocaleString(undefined, { maximumFractionDigits: 6 }) ?? "-"}
+            </div>
+            <div style={{ color: hovered.change >= 0 ? "#fca5a5" : "#a3a8ea" }}>
+              {PERIODS.find((p) => p.key === period)!.label}{" "}
+              {hovered.change > 0 ? "+" : ""}
+              {hovered.change.toFixed(2)}%
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

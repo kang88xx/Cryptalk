@@ -1,4 +1,5 @@
-// @NewListingsFeed 텔레그램 공개 채널 → 금일 신규 상장 중 "바이낸스 선물"만 추출
+// @NewListingsFeed 텔레그램 공개 채널 → 금일 신규 상장 예정 추출
+// 대상: 바이낸스 선물 · Bithumb · Robinhood · Coinbase(로드맵 포함)
 // 봇/로그인 없이 t.me/s 웹 미리보기를 30분 간격으로 스크래핑
 
 import { lookup } from "node:dns/promises";
@@ -59,8 +60,11 @@ async function isSafePublicUrl(raw: string): Promise<boolean> {
   }
 }
 
+export type Exchange = "Binance" | "Bithumb" | "Robinhood" | "Coinbase";
+
 export type Listing = {
   id: string; // 메시지 고유 (t.me 링크 끝 번호)
+  exchange: Exchange; // 노출 대상 거래소
   symbol: string | null; // 예: ZEST
   detail: string; // 예: "listed on Binance futures"
   text: string; // 디코딩된 원문 한 줄
@@ -73,9 +77,17 @@ const CHANNEL = "NewListingsFeed";
 const SRC_URL = `https://t.me/s/${CHANNEL}`;
 const TTL_MS = 30 * 60_000; // 30분에 한 번만 실제 스크래핑
 
-// 바이낸스 선물 상장만 (Binance + futures/perpetual). Binance alpha·spot, 타 거래소 제외.
-const BINANCE_FUTURES_RE = /binance/i;
 const FUTURES_RE = /futures|perpetual|perp\b/i;
+
+// @NewListingsFeed 메시지 → 노출 대상 거래소 분류 (대상 아니면 null)
+// 바이낸스는 선물(futures/perpetual)만, 나머지는 상장·로드맵 전부.
+function classifyExchange(text: string): Exchange | null {
+  if (/binance/i.test(text) && FUTURES_RE.test(text)) return "Binance";
+  if (/bithumb/i.test(text)) return "Bithumb";
+  if (/robinhood/i.test(text)) return "Robinhood";
+  if (/coinbase/i.test(text)) return "Coinbase"; // 상장 + 로드맵(roadmap) 포함
+  return null;
+}
 
 function decodeEntities(s: string): string {
   return s
@@ -106,8 +118,9 @@ function parseListings(html: string): Listing[] {
     const inner = m[1];
     const text = decodeEntities(inner);
     if (!text) continue;
-    // 바이낸스 선물 상장만 노출
-    if (!BINANCE_FUTURES_RE.test(text) || !FUTURES_RE.test(text)) continue;
+    // 노출 대상 거래소만 (바이낸스 선물 · Bithumb · Robinhood · Coinbase)
+    const exchange = classifyExchange(text);
+    if (!exchange) continue;
 
     // 포스팅 본문 안의 원문 링크(거래소 공지·X 등) — 우선 사용
     const srcUrl = inner.match(/href="([^"]+)"/)?.[1]?.replace(/&amp;/g, "&") ?? null;
@@ -120,6 +133,7 @@ function parseListings(html: string): Listing[] {
     const detail = sym ? text.replace(/^\$?[A-Z0-9]{1,15}\s*/, "") : text;
     out.push({
       id,
+      exchange,
       symbol: sym,
       detail,
       text,
@@ -135,6 +149,65 @@ const MON: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
   jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
 };
+
+// KST(UTC+9) 시:분 → UTC ISO. 자정 전후로 음수 시각이 나와도 Date.UTC가 날짜를 보정함.
+function kstToUtcIso(y: number, mo1: number, d: number, hh: number, mm: number): string {
+  return new Date(Date.UTC(y, mo1 - 1, d, hh, mm) - 9 * 3600_000).toISOString();
+}
+
+// ── Bithumb 공지: 본문(예상거래시간)은 Cloudflare로 서버 fetch 불가 → 공개 공지 리스트 API 사용 ──
+// feed-api는 최신 공지의 제목·게시시각·pc_url을 JSON으로 제공. 거래 오픈 시각은 제목에
+// "(거래 오픈 오후 6시 30분)" / "(거래 오픈 오후 17:00)" 형태로 붙는다(임박 상장 시).
+type BithumbNotice = { title: string; publishedAt: string };
+const BITHUMB_NOTICE_API = "https://feed-api.bithumb.com/v1/notices";
+
+async function fetchBithumbNotices(): Promise<Map<string, BithumbNotice>> {
+  const map = new Map<string, BithumbNotice>();
+  try {
+    const res = await fetch(BITHUMB_NOTICE_API, {
+      signal: AbortSignal.timeout(7000),
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+        Accept: "application/json",
+        "Accept-Language": "ko-KR,ko;q=0.9",
+      },
+    });
+    if (!res.ok) return map;
+    const arr = (await res.json()) as Array<{ title?: string; pc_url?: string; published_at?: string }>;
+    for (const n of Array.isArray(arr) ? arr : []) {
+      const id = String(n.pc_url ?? "").match(/\/notice\/(\d+)/)?.[1];
+      if (id && n.title && n.published_at) map.set(id, { title: n.title, publishedAt: n.published_at });
+    }
+  } catch {
+    /* 네트워크/파싱 실패 → 빈 맵(미정 처리) */
+  }
+  return map;
+}
+
+// 빗썸 공지 제목에서 거래 오픈 시각(KST) → UTC ISO. 시각이 없으면 null(미정).
+// published_at(KST)의 날짜에 제목의 시:분을 결합한다. 예: "(거래 오픈 오후 6시 30분)" → 18:30.
+function parseBithumbTradeTime(title: string, publishedAt: string): string | null {
+  if (!/거래\s*(오픈|지원|시작)/.test(title)) return null; // 거래시각 공지인지 확인(코인명 숫자 오인 방지)
+  const ampm = title.match(/(오전|오후)/)?.[1];
+  let hh: number, mm: number;
+  const hm = title.match(/(\d{1,2}):(\d{2})/); // "17:00"
+  const ko = title.match(/(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분)?/); // "6시 30분"
+  if (hm) {
+    hh = +hm[1]; mm = +hm[2];
+  } else if (ko) {
+    hh = +ko[1]; mm = ko[2] ? +ko[2] : 0;
+  } else {
+    return null;
+  }
+  if (ampm === "오후" && hh < 12) hh += 12; // 오후 6시 → 18 (단, "오후 17:00"은 이미 24h라 유지)
+  if (ampm === "오전" && hh === 12) hh = 0; // 오전 12시 → 자정
+  if (hh > 23 || mm > 59) return null;
+  const date = publishedAt.split(" ")[0]; // "2026-06-19" (KST)
+  const [y, mo, d] = date.split("-").map(Number);
+  if (!y || !mo || !d) return null;
+  return kstToUtcIso(y, mo, d, hh, mm);
+}
 
 // 원문 공지에서 상장 예정 시각(UTC)을 best-effort로 추출. 못 찾으면 null.
 async function extractScheduledTime(url: string | null): Promise<string | null> {
@@ -177,7 +250,19 @@ async function extractScheduledTime(url: string | null): Promise<string | null> 
     if (b && b.index !== undefined && b.index < idx) {
       hh = +b[1]; mm = +b[2]; mo = MON[b[3].slice(0, 3).toLowerCase()]; d = +b[4]; y = +b[5]; idx = b.index;
     }
-    if (idx === Infinity || mo == null || y == null) return null;
+    if (idx === Infinity || mo == null || y == null) {
+      // 영문 UTC 표기가 없으면 한국어 공지(빗썸 등) "예상 거래시간 … YYYY년 M월 D일 HH:MM"(KST) 시도
+      const k = t.match(
+        /(?:예상\s*거래\s*시간|거래\s*(?:지원|오픈|시작)[^.\d]{0,12})[^\d]{0,12}?(\d{4})\D{1,3}(\d{1,2})\D{1,3}(\d{1,2})\D{0,8}?(오전|오후)?\s*(\d{1,2})\s*[:시]\s*(\d{1,2})?/
+      );
+      if (!k) return null;
+      let kh = +k[5];
+      const km = k[6] ? +k[6] : 0;
+      if (k[4] === "오후" && kh < 12) kh += 12;
+      if (k[4] === "오전" && kh === 12) kh = 0;
+      if (kh > 23 || km > 59) return null;
+      return kstToUtcIso(+k[1], +k[2], +k[3], kh, km);
+    }
     return new Date(Date.UTC(y, mo, d!, hh!, mm!)).toISOString();
   } catch {
     return null;
@@ -201,19 +286,32 @@ async function scrape(): Promise<{ listings: Listing[]; updatedAt: string }> {
   const listings = all
     .filter((l) => kstDay(new Date(l.date)) === today)
     .sort((a, b) => b.date.localeCompare(a.date));
+  // 빗썸 공지 리스트 1콜(거래시각은 제목에 표기) — 매 리스팅 fetch 방지
+  const hasBithumb = listings.some((l) => l.exchange === "Bithumb");
+  const bithumbNotices = hasBithumb ? await fetchBithumbNotices() : new Map<string, BithumbNotice>();
+
   // 원문에서 상장 예정 시각 추출 (병렬, 실패 시 null=미정)
   await Promise.all(
     listings.map(async (l) => {
+      if (l.exchange === "Bithumb") {
+        // 빗썸: 공지 제목의 "(거래 오픈 …)"을 우선 사용(안정적), 없으면 본문 best-effort
+        const id = l.url?.match(/feed\.bithumb\.com\/notice\/(\d+)/)?.[1];
+        const notice = id ? bithumbNotices.get(id) : undefined;
+        l.scheduledAt = notice ? parseBithumbTradeTime(notice.title, notice.publishedAt) : null;
+        if (!l.scheduledAt) l.scheduledAt = await extractScheduledTime(l.url);
+        return;
+      }
       l.scheduledAt = await extractScheduledTime(l.url);
     })
   );
   return { listings, updatedAt: new Date().toISOString() };
 }
 
-// 금일(KST) 바이낸스 선물 신규 상장 — DB 공유 캐시(30분)
+// 금일(KST) 신규 상장 예정 (바이낸스 선물·Bithumb·Robinhood·Coinbase) — DB 공유 캐시(30분)
 export async function getTodayListings(): Promise<{ listings: Listing[]; updatedAt: string }> {
   try {
-    return await cachedJson("listings", TTL_MS, scrape);
+    // -v3: 빗썸 거래시각(공지 제목 파싱) 도입 — 옛 캐시 무시하고 즉시 새 형식으로 갱신
+    return await cachedJson("listings-v3", TTL_MS, scrape);
   } catch {
     return { listings: [], updatedAt: new Date(0).toISOString() };
   }

@@ -7,11 +7,13 @@ export default function LiveViewers() {
   const [n, setN] = useState(0); // 0 = 서버/초기 렌더 (하이드레이션 안전)
 
   useEffect(() => {
-    let base = 120 + Math.floor(Math.random() * 60); // 120~180
+    // 28~88 범위 내에서 랜덤 기준값 + 완만한 변동
+    const rand = () => 28 + Math.floor(Math.random() * 61); // 28~88
+    let base = rand();
     // 초기값은 다음 틱에 설정 (effect 본문 동기 setState 회피)
     const first = setTimeout(() => setN(base), 50);
     const id = setInterval(() => {
-      base = Math.max(80, Math.min(260, base + (Math.floor(Math.random() * 7) - 3)));
+      base = Math.max(28, Math.min(88, base + (Math.floor(Math.random() * 7) - 3)));
       setN(base);
     }, 5000);
     return () => {

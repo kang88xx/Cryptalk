@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPostDate } from "@/lib/format";
 import TickerTable from "@/components/TickerTable";
 import MarketCards from "@/components/MarketCards";
+import FxRate from "@/components/FxRate";
 import SignalRadar from "@/components/SignalRadar";
 import ListingsStrip from "@/components/ListingsStrip";
 import UpcomingEvents from "@/components/UpcomingEvents";
@@ -34,10 +35,14 @@ export default async function Home() {
   return (
     <div className="flex flex-col gap-6">
       <MarketCards />
+      <FxRate />
       <SignalRadar />
       <ListingsStrip />
       <UpcomingEvents />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-6">
+      {/* 실시간 시세 — 좌측 본문 상단 */}
+      <TickerTable />
       <section className="border border-line bg-white">
         <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
           <h2 className="text-sm font-semibold text-navy-900">자유게시판 최신글</h2>
@@ -71,9 +76,9 @@ export default async function Home() {
           </ul>
         )}
       </section>
+      </div>
 
       <aside className="flex flex-col gap-6">
-        <TickerTable />
         <section className="border border-line bg-white">
           <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <h2 className="text-sm font-semibold text-navy-900">시장 분석</h2>

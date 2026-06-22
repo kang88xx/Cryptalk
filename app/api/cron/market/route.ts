@@ -9,7 +9,7 @@ import {
   getExchangeSpread,
   getTrendLabels,
 } from "@/lib/ticker";
-import { getMarketOverview, getFxHistory } from "@/lib/market";
+import { getMarketOverview, getFxHistory, getBubbles } from "@/lib/market";
 import { getTodayListings } from "@/lib/listings";
 import { getMarketBar } from "@/lib/marketbar";
 
@@ -41,6 +41,7 @@ export async function GET(req: Request) {
     getTrendLabels(),
     getMarketOverview(),
     getFxHistory(),
+    getBubbles(),
     getTodayListings(),
     getMarketBar(),
   ]);

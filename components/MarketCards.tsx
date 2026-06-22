@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getTickers, getExchangeComparison } from "@/lib/ticker";
-import { getMarketOverview, getFxHistory, fngLabelKo } from "@/lib/market";
+import { getMarketOverview, fngLabelKo } from "@/lib/market";
 import { formatKrw, formatPercent, formatRelativeTime } from "@/lib/format";
 import { kimchiSignal, usdtBasisSignal, fngSignal, toneClass } from "@/lib/signals";
 import Sparkline from "@/components/Sparkline";
@@ -25,10 +25,10 @@ function changeColor(n: number | null): string {
 function BigStat({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative inline-block">
-      <span className="font-sans text-[clamp(44px,8vw,60px)] font-light leading-[0.9] tracking-[-0.04em] tabular-nums text-navy-900">
+      <span className="font-sans text-[clamp(30px,5.6vw,42px)] font-light leading-[0.9] tracking-[-0.04em] tabular-nums text-navy-900">
         {children}
       </span>
-      <span className="absolute inset-x-0 -bottom-1.5 h-1 bg-amber-500" />
+      <span className="absolute inset-x-0 -bottom-1 h-1 bg-amber-500" />
     </div>
   );
 }
@@ -36,7 +36,7 @@ function BigStat({ children }: { children: React.ReactNode }) {
 // 카드 상단 넘버링 eyebrow
 function CardHead({ no, title, meta }: { no: string; title: string; meta: string }) {
   return (
-    <div className="mb-5 flex items-center justify-between gap-3">
+    <div className="mb-3 flex items-center justify-between gap-3">
       <span className="font-mono text-[11px] tracking-[0.16em] text-navy-500 uppercase">
         {no} · {title}
       </span>
@@ -47,11 +47,10 @@ function CardHead({ no, title, meta }: { no: string; title: string; meta: string
 
 // 김프(BTC) · 도미넌스 · 공포탐욕 3카드 — 홈/대시보드 공용
 export default async function MarketCards() {
-  const [snapshot, overview, exchanges, fxHistory, domHistory] = await Promise.all([
+  const [snapshot, overview, exchanges, domHistory] = await Promise.all([
     getTickers(),
     getMarketOverview(),
     getExchangeComparison(),
-    getFxHistory(),
     prisma.marketSnapshot
       .findMany({ orderBy: { createdAt: "desc" }, take: 336 })
       .then((rows) => rows.reverse()),
@@ -79,10 +78,10 @@ export default async function MarketCards() {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {/* 01 · KIMCHI PREMIUM */}
-      <section className="flex flex-col border border-line bg-white p-7 transition-colors hover:border-navy-300">
+      <section className="flex flex-col border border-line bg-white p-5 transition-colors hover:border-navy-300">
         <CardHead no="01" title="Kimchi Premium" meta={`${formatRelativeTime(snapshot.updatedAt)} · 업비트·바이낸스`} />
 
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
           <BigStat>{formatPercent(btc?.kimchiPremium ?? null)}</BigStat>
           {kimchiSig && (
             <span className={`rounded px-2 py-1 text-[11px] font-semibold ${toneClass(kimchiSig.tone)}`}>
@@ -91,18 +90,18 @@ export default async function MarketCards() {
           )}
         </div>
 
-        <p className="mt-5 text-[13px] leading-relaxed text-ink-500">
+        <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
           업비트 <span className="font-mono text-ink-700">{formatKrw(btc?.priceKrw ?? null)}원</span> · 바이낸스{" "}
           <span className="font-mono text-ink-700">${btc?.priceUsd?.toLocaleString() ?? "–"}</span> · 환율{" "}
           <span className="font-mono text-ink-700">{snapshot.usdKrw.toLocaleString()}</span>{" "}
           <span className={fxIsEstimate ? "font-semibold text-red-600" : "text-navy-300"}>({fxLabel})</span>
         </p>
 
-        <div className="mt-6 mb-4 h-px bg-line" />
+        <div className="mt-4 mb-3 h-px bg-line" />
 
         {/* 프리미엄 분해 */}
-        <p className="mb-3 font-sans text-sm font-semibold text-navy-900">프리미엄 분해</p>
-        <div className="flex items-center justify-between gap-2 py-1.5 text-[13px]">
+        <p className="mb-2 font-sans text-sm font-semibold text-navy-900">프리미엄 분해</p>
+        <div className="flex items-center justify-between gap-2 py-1 text-[13px]">
           <span className="text-ink-700">
             USDT 베이시스 <span className="text-ink-300">· 원화 자금</span>
           </span>
@@ -117,7 +116,7 @@ export default async function MarketCards() {
             </span>
           </span>
         </div>
-        <div className="flex items-center justify-between gap-2 py-1.5 text-[13px]">
+        <div className="flex items-center justify-between gap-2 py-1 text-[13px]">
           <span className="text-ink-700">
             BTC 잔여 <span className="text-ink-300">· 코인 고유</span>
           </span>
@@ -126,38 +125,22 @@ export default async function MarketCards() {
           </span>
         </div>
 
-        {/* 환율 지난 6일 */}
-        <div className="mt-6 grid grid-cols-6 gap-1.5">
-          {fxHistory.map((p) => {
-            const d = new Date(p.date + "T00:00:00Z");
-            return (
-              <div key={p.date} className="border border-line bg-paper px-1 py-2 text-center">
-                <p className="font-mono text-[10px] text-ink-300">
-                  {d.getUTCMonth() + 1}/{d.getUTCDate()}
-                </p>
-                <p className="mt-0.5 font-mono text-[13px] tabular-nums text-navy-900">
-                  {Math.round(p.rate).toLocaleString()}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-        <p className="mt-auto pt-4 font-mono text-[10px] tracking-[0.14em] text-navy-400 uppercase">
+        <p className="mt-auto pt-3 font-mono text-[10px] tracking-[0.14em] text-navy-400 uppercase">
           {fxIsEstimate ? (
             <span className="text-red-600">⚠ 환율 일시 추정 · 김프 정확도 주의</span>
           ) : (
-            "환율 USD/KRW · 최근 6영업일"
+            "업비트·바이낸스 · ECB 환율 기준"
           )}
         </p>
       </section>
 
       {/* 02 · BTC DOMINANCE */}
-      <section className="flex flex-col border border-line bg-white p-7 transition-colors hover:border-navy-300">
+      <section className="flex flex-col border border-line bg-white p-5 transition-colors hover:border-navy-300">
         <CardHead no="02" title="BTC Dominance" meta={`${formatRelativeTime(overview.updatedAt)} · CoinGecko`} />
 
         <BigStat>{overview.btcDominance != null ? `${overview.btcDominance.toFixed(1)}%` : "–"}</BigStat>
 
-        <p className="mt-5 text-[13px] leading-relaxed text-ink-500">
+        <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
           전체 시가총액{" "}
           <span className="font-mono text-ink-700">
             {overview.totalMarketCapUsd != null ? `$${(overview.totalMarketCapUsd / 1e12).toFixed(2)}T` : "–"}
@@ -167,16 +150,16 @@ export default async function MarketCards() {
           </span>
         </p>
 
-        <div className="mt-4 flex flex-1 items-end">
+        <div className="mt-3 flex flex-1 items-end">
           <Sparkline
             values={domHistory.map((s) => s.btcDominance)}
             width={300}
-            height={140}
-            stroke="#091955"
+            height={96}
+            stroke="#20305f"
             accentRing="#EFC540"
           />
         </div>
-        <p className="mt-2 border-t border-line pt-4 font-mono text-[10px] tracking-[0.14em] text-navy-400 uppercase">
+        <p className="mt-2 border-t border-line pt-3 font-mono text-[10px] tracking-[0.14em] text-navy-400 uppercase">
           도미넌스 추이 · 15min · {domHistory.length} samples ·{" "}
           <a
             href="https://www.coingecko.com/en/global-charts"
@@ -190,12 +173,12 @@ export default async function MarketCards() {
       </section>
 
       {/* 03 · FEAR & GREED */}
-      <section className="flex flex-col border border-line bg-white p-7 transition-colors hover:border-navy-300">
+      <section className="flex flex-col border border-line bg-white p-5 transition-colors hover:border-navy-300">
         <CardHead no="03" title="Fear &amp; Greed" meta="Daily" />
         {latestFng ? (
           <>
             <div className="flex flex-col items-center">
-              <div className="w-full max-w-[300px]">
+              <div className="w-full max-w-[220px]">
                 <FngGauge value={latestFng.value} label={fngLabelKo(latestFng.classification)} />
               </div>
               {fngSig && (
@@ -205,11 +188,11 @@ export default async function MarketCards() {
               )}
             </div>
 
-            <div className="mt-6 grid grid-cols-6 gap-1.5">
+            <div className="mt-4 grid grid-cols-6 gap-1.5">
               {overview.fearGreed!.slice(-7, -1).map((p) => {
                 const d = new Date(p.date);
                 return (
-                  <div key={p.date} className="border border-line bg-paper px-1 py-2 text-center">
+                  <div key={p.date} className="border border-line bg-paper px-1 py-1.5 text-center">
                     <p className="font-mono text-[10px] text-ink-300">
                       {d.getUTCMonth() + 1}/{d.getUTCDate()}
                     </p>
@@ -218,7 +201,7 @@ export default async function MarketCards() {
                 );
               })}
             </div>
-            <p className="mt-auto pt-4 font-mono text-[10px] tracking-[0.14em] text-navy-400 uppercase">
+            <p className="mt-auto pt-3 font-mono text-[10px] tracking-[0.14em] text-navy-400 uppercase">
               지난 6일 · BTC 기준 · Alternative.me
             </p>
           </>

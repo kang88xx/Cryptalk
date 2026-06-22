@@ -1,8 +1,6 @@
 import { cachedJson } from "@/lib/cache";
-import { prisma } from "@/lib/prisma";
-import { getMarketOverview } from "@/lib/market";
 
-// CoinMarketCal 스타일 상단 마켓바 — 미니차트 타일 (크립토·주가지수·원자재/환율·코인)
+// 상단 마켓바 — 주가지수·원자재 미니차트 타일 (나스닥·코스피·코스닥·금)
 export type BarTile = {
   key: string;
   label: string;
@@ -58,97 +56,19 @@ async function fetchYahooSeries(
   }
 }
 
-type CgCoin = {
-  id: string;
-  symbol: string;
-  current_price: number;
-  price_change_percentage_24h: number | null;
-  price_change_percentage_30d_in_currency?: number | null;
-  sparkline_in_7d?: { price?: number[] };
-};
 
-const STABLES = new Set(["usdt", "usdc", "dai", "fdusd", "usde", "tusd", "usds", "pyusd"]);
-
-async function fetchCgMarkets(): Promise<CgCoin[]> {
-  const res = await fetch(
-    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&sparkline=true&price_change_percentage=24h,30d",
-    { signal: AbortSignal.timeout(7000), cache: "no-store", headers: { Accept: "application/json" } }
-  );
-  if (!res.ok) throw new Error(`coingecko markets ${res.status}`);
-  return (await res.json()) as CgCoin[];
-}
-
-// 알트시즌 근사: 시총 상위(스테이블·BTC 제외) 중 30일 수익률이 BTC를 앞선 비율(%)
-function altSeasonIndex(coins: CgCoin[]): number | null {
-  const btc = coins.find((c) => c.symbol.toLowerCase() === "btc");
-  const btc30 = btc?.price_change_percentage_30d_in_currency;
-  if (btc30 == null) return null;
-  const universe = coins
-    .filter((c) => c.symbol.toLowerCase() !== "btc" && !STABLES.has(c.symbol.toLowerCase()))
-    .filter((c) => c.price_change_percentage_30d_in_currency != null)
-    .slice(0, 50);
-  if (universe.length === 0) return null;
-  const out = universe.filter((c) => (c.price_change_percentage_30d_in_currency as number) > btc30).length;
-  return Math.round((out / universe.length) * 100);
-}
-
+// 표시 대상 — 나스닥·코스피·코스닥·금 (그 외 지표·코인 타일 제거)
 const YAHOO: { key: string; label: string; symbol: string; prefix?: string; digits?: number }[] = [
   { key: "nasdaq", label: "나스닥", symbol: "^IXIC", digits: 2 },
   { key: "kospi", label: "코스피", symbol: "^KS11", digits: 2 },
   { key: "kosdaq", label: "코스닥", symbol: "^KQ11", digits: 2 },
   { key: "gold", label: "금(Gold)", symbol: "GC=F", prefix: "$", digits: 1 },
-  { key: "dxy", label: "달러(DXY)", symbol: "DX-Y.NYB", digits: 2 },
-  { key: "usdkrw", label: "환율 USD/KRW", symbol: "KRW=X", digits: 1 },
 ];
 
 async function fetchMarketBar(): Promise<MarketBarData> {
-  const [overview, snaps, cg, ...yh] = await Promise.all([
-    getMarketOverview(),
-    prisma.marketSnapshot
-      .findMany({ orderBy: { createdAt: "desc" }, take: 48, select: { btcDominance: true, totalMcapUsd: true } })
-      .then((rows) => rows.reverse())
-      .catch(() => []),
-    fetchCgMarkets().catch(() => null),
-    ...YAHOO.map((y) => fetchYahooSeries(y.symbol)),
-  ]);
+  const yh = await Promise.all(YAHOO.map((y) => fetchYahooSeries(y.symbol)));
 
   const tiles: BarTile[] = [];
-  const fng = overview.fearGreed?.at(-1) ?? null;
-
-  // ── 크립토 지표 ──
-  if (overview.totalMarketCapUsd != null) {
-    tiles.push({
-      key: "mcap",
-      label: "시가총액",
-      value: `$${(overview.totalMarketCapUsd / 1e12).toFixed(2)}T`,
-      changePct: overview.marketCapChange24h,
-      spark: snaps.map((s) => s.totalMcapUsd),
-    });
-  }
-  if (overview.btcDominance != null) {
-    tiles.push({
-      key: "dom",
-      label: "BTC 도미넌스",
-      value: `${overview.btcDominance.toFixed(1)}%`,
-      changePct: null,
-      spark: snaps.map((s) => s.btcDominance),
-    });
-  }
-  if (fng) {
-    tiles.push({
-      key: "fng",
-      label: "공포탐욕",
-      value: String(fng.value),
-      changePct: null,
-      spark: (overview.fearGreed ?? []).map((p) => p.value),
-    });
-  }
-  const alt = cg ? altSeasonIndex(cg) : null;
-  if (alt != null) {
-    tiles.push({ key: "alt", label: "알트시즌", value: `${alt}`, changePct: null, spark: [] });
-  }
-
-  // ── 주가지수 · 원자재 · 환율 (S&P 제외) ──
   YAHOO.forEach((y, i) => {
     const r = yh[i];
     if (!r) return;
@@ -160,19 +80,6 @@ async function fetchMarketBar(): Promise<MarketBarData> {
       spark: r.spark,
     });
   });
-
-  // ── 주요 코인 (BTC · ETH) ──
-  for (const sym of ["btc", "eth"]) {
-    const c = cg?.find((x) => x.symbol.toLowerCase() === sym);
-    if (!c) continue;
-    tiles.push({
-      key: sym,
-      label: sym.toUpperCase(),
-      value: `$${c.current_price.toLocaleString(undefined, { maximumFractionDigits: c.current_price >= 100 ? 0 : 2 })}`,
-      changePct: c.price_change_percentage_24h,
-      spark: (c.sparkline_in_7d?.price ?? []).filter((n) => Number.isFinite(n)).slice(-32),
-    });
-  }
 
   if (tiles.length === 0) throw new Error("market bar unavailable");
   return { tiles, updatedAt: new Date().toISOString() };

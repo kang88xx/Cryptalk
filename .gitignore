@@ -47,3 +47,7 @@ next-env.d.ts
 prisma/*.db
 prisma/*.db-journal
 .gstack/
+
+# 작업용 엑셀/오피스 임시파일
+*.xlsx
+~$*

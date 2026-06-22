@@ -20,6 +20,39 @@ model User {
   votes        Vote[]
   pointLogs    PointLog[]
   portfolio    PortfolioItem[]
+  prizeWins    PrizeWin[]
+}
+
+// 랜덤박스 상품 — 어드민(운영진 Lv10+)이 등록/관리
+model Prize {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String?
+  imageUrl    String?
+  rarity      String     @default("common") // common | rare | epic | legendary (색·연출 등급)
+  weight      Int        @default(100) // 추첨 가중치 — 클수록 자주 당첨
+  stock       Int? // null=무제한, 숫자=남은 수량 (0이면 소진)
+  active      Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  wins        PrizeWin[]
+
+  @@index([active])
+}
+
+// 랜덤박스 당첨 내역
+model PrizeWin {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  prize     Prize    @relation(fields: [prizeId], references: [id])
+  prizeId   Int
+  cost      Int // 소모 포인트
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([prizeId])
+  @@index([createdAt(sort: Desc)])
 }
 
 model PortfolioItem {
@@ -154,4 +187,11 @@ model Vote {
   value  Int
 
   @@unique([postId, userId])
+}
+
+// 일자별 접속자 집계 (KST 기준 day = "YYYY-MM-DD") — 어드민 "금일 총 접속자"
+model VisitStat {
+  day       String   @id // KST 날짜 "2026-06-22"
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
 }

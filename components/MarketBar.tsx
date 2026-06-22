@@ -1,8 +1,7 @@
 import { getMarketBar } from "@/lib/marketbar";
 import { formatPercent } from "@/lib/format";
 import Sparkline from "@/components/Sparkline";
-import LiveViewers from "@/components/LiveViewers";
-import LangToggle from "@/components/LangToggle";
+import MarketStatus, { type Mkt } from "@/components/MarketStatus";
 
 // 등락 색: 한국식 (상승=빨강, 하락=파랑)
 function dir(n: number | null): { text: string; stroke: string } {
@@ -11,51 +10,57 @@ function dir(n: number | null): { text: string; stroke: string } {
   return { text: "text-ink-500", stroke: "#A0A6BB" };
 }
 
-// CoinMarketCal 스타일 상단 마켓바 — 미니차트 타일 (S&P 제외)
+// 타일 키 → 시장 구분 (장중/장마감 판별용)
+function marketOf(key: string): Mkt | null {
+  if (key === "nasdaq") return "us";
+  if (key === "kospi" || key === "kosdaq") return "kr";
+  if (key === "gold") return "gold";
+  return null;
+}
+
+// 상단 마켓바 — 지수·원자재 미니차트 타일 (나스닥·코스피·코스닥·금)
 export default async function MarketBar() {
   const { tiles } = await getMarketBar();
 
   return (
     <div className="border-b border-line bg-paper">
       <div className="mx-auto flex max-w-6xl items-stretch gap-3 px-4">
-        {/* 타일 스트립 (가로 스크롤) */}
-        <div className="flex flex-1 items-stretch gap-2 overflow-x-auto py-1.5">
+        {/* 타일 스트립 — 스크롤 없이 줄바꿈 (공간 부족 시 2줄) */}
+        <div className="flex flex-1 flex-wrap items-stretch gap-2 py-2">
           {tiles.length === 0 ? (
             <span className="rail self-center">마켓 데이터 불러오는 중…</span>
           ) : (
             tiles.map((t) => {
               const c = dir(t.changePct);
+              const mkt = marketOf(t.key);
               return (
                 <div
                   key={t.key}
-                  className="flex shrink-0 items-center gap-2 border border-line bg-white px-2.5 py-1"
+                  className="flex shrink-0 grow items-center justify-between gap-2.5 border border-line bg-white px-3 py-1.5"
                 >
                   <div className="flex flex-col leading-tight">
-                    <span className="text-[9px] whitespace-nowrap text-navy-400">{t.label}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[10px] whitespace-nowrap text-navy-400">{t.label}</span>
+                      {mkt && <MarketStatus market={mkt} />}
+                    </span>
                     <span className="flex items-baseline gap-1">
-                      <span className="font-mono text-[12px] font-semibold whitespace-nowrap text-navy-900">
+                      <span className="font-mono text-[14px] font-semibold whitespace-nowrap text-navy-900">
                         {t.value}
                       </span>
                       {t.changePct != null && (
-                        <span className={`font-mono text-[10px] ${c.text}`}>
+                        <span className={`font-mono text-[11px] ${c.text}`}>
                           {formatPercent(t.changePct)}
                         </span>
                       )}
                     </span>
                   </div>
                   {t.spark.length >= 2 && (
-                    <Sparkline values={t.spark} width={48} height={22} stroke={c.stroke} />
+                    <Sparkline values={t.spark} width={56} height={26} stroke={c.stroke} />
                   )}
                 </div>
               );
             })
           )}
-        </div>
-
-        {/* 우측 — 동시접속 · 언어 (스크롤 영향 없음) */}
-        <div className="flex shrink-0 items-center gap-3 border-l border-line pl-3">
-          <LiveViewers />
-          <LangToggle />
         </div>
       </div>
     </div>

@@ -63,11 +63,11 @@ export default function FngGauge({
         y1={tail.y}
         x2={tip.x}
         y2={tip.y}
-        stroke="#091955"
+        stroke="#20305f"
         strokeWidth={2.5}
         strokeLinecap="round"
       />
-      <circle cx={cx} cy={cy} r={4.5} fill="#091955" />
+      <circle cx={cx} cy={cy} r={4.5} fill="#20305f" />
       <circle cx={cx} cy={cy} r={1.8} fill="#FFFFFF" />
 
       {/* 양끝 라벨 — baseline 모서리 */}
