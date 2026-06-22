@@ -1,12 +1,18 @@
 import { cachedJson } from "@/lib/cache";
 
 // 상단 마켓바 — 주가지수·원자재 미니차트 타일 (나스닥·코스피·코스닥·금)
+export type BarStock = {
+  label: string;
+  value: string; // 표시용 포맷된 값
+  changePct: number | null;
+};
 export type BarTile = {
   key: string;
   label: string;
   value: string; // 표시용 포맷된 값
   changePct: number | null;
   spark: number[]; // 미니 스파크라인 시리즈
+  stocks?: BarStock[]; // 대표 종목 2개 (나스닥·코스피 한정)
 };
 export type MarketBarData = { tiles: BarTile[]; updatedAt: string };
 
@@ -65,8 +71,39 @@ const YAHOO: { key: string; label: string; symbol: string; prefix?: string; digi
   { key: "gold", label: "금(Gold)", symbol: "GC=F", prefix: "$", digits: 1 },
 ];
 
+// 타일별 대표 종목 2개 — 나스닥(애플·엔비디아) / 코스피(삼성전자·SK하이닉스)
+const STOCKS: Record<string, { label: string; symbol: string; prefix?: string; digits?: number }[]> = {
+  nasdaq: [
+    { label: "애플", symbol: "AAPL", prefix: "$", digits: 2 },
+    { label: "엔비디아", symbol: "NVDA", prefix: "$", digits: 2 },
+  ],
+  kospi: [
+    { label: "삼성전자", symbol: "005930.KS", digits: 0 },
+    { label: "SK하이닉스", symbol: "000660.KS", digits: 0 },
+  ],
+};
+
 async function fetchMarketBar(): Promise<MarketBarData> {
-  const yh = await Promise.all(YAHOO.map((y) => fetchYahooSeries(y.symbol)));
+  // 지수·원자재 + 대표 종목을 한 번에 병렬 호출
+  const stockDefs = Object.entries(STOCKS).flatMap(([tileKey, arr]) =>
+    arr.map((s) => ({ tileKey, ...s }))
+  );
+  const [yh, st] = await Promise.all([
+    Promise.all(YAHOO.map((y) => fetchYahooSeries(y.symbol))),
+    Promise.all(stockDefs.map((s) => fetchYahooSeries(s.symbol))),
+  ]);
+
+  // 종목 결과를 타일 키별로 묶기
+  const stocksByTile: Record<string, BarStock[]> = {};
+  stockDefs.forEach((s, i) => {
+    const r = st[i];
+    if (!r) return;
+    (stocksByTile[s.tileKey] ??= []).push({
+      label: s.label,
+      value: `${s.prefix ?? ""}${r.price.toLocaleString(undefined, { maximumFractionDigits: s.digits ?? 2 })}`,
+      changePct: r.prev > 0 ? ((r.price - r.prev) / r.prev) * 100 : null,
+    });
+  });
 
   const tiles: BarTile[] = [];
   YAHOO.forEach((y, i) => {
@@ -78,6 +115,7 @@ async function fetchMarketBar(): Promise<MarketBarData> {
       value: `${y.prefix ?? ""}${r.price.toLocaleString(undefined, { maximumFractionDigits: y.digits ?? 2 })}`,
       changePct: r.prev > 0 ? ((r.price - r.prev) / r.prev) * 100 : null,
       spark: r.spark,
+      stocks: stocksByTile[y.key],
     });
   });
 

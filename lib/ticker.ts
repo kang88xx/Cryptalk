@@ -212,6 +212,37 @@ async function getAllKrwTickers(): Promise<AllKrwResult> {
   }
 }
 
+// 업비트 마켓 한글명 맵 — 심볼(BTC) → 한글명(비트코인). 마켓 목록은 거의 안 변해 6시간 캐시.
+type UpbitMarket = { market: string; korean_name: string; english_name: string };
+let upbitNamesCache: { map: Map<string, string>; at: number } | null = null;
+let upbitNamesInflight: Promise<Map<string, string>> | null = null;
+const UPBIT_NAMES_TTL_MS = 6 * 60 * 60_000;
+
+async function getUpbitNamesKo(): Promise<Map<string, string>> {
+  if (upbitNamesCache && Date.now() - upbitNamesCache.at < UPBIT_NAMES_TTL_MS) {
+    return upbitNamesCache.map;
+  }
+  if (!upbitNamesInflight) {
+    upbitNamesInflight = fetchJson<UpbitMarket[]>("https://api.upbit.com/v1/market/all", 7000)
+      .then((rows) => {
+        const map = new Map<string, string>();
+        for (const r of rows) {
+          if (r.market.startsWith("KRW-")) map.set(r.market.replace("KRW-", ""), r.korean_name);
+        }
+        upbitNamesCache = { map, at: Date.now() };
+        return map;
+      })
+      .finally(() => {
+        upbitNamesInflight = null;
+      });
+  }
+  try {
+    return await upbitNamesInflight;
+  } catch {
+    return upbitNamesCache?.map ?? new Map();
+  }
+}
+
 // 바이낸스 전체 현물가 맵 — 김프표/시그널레이더가 공유(중복 호출 방지, 60초 인메모리)
 let bnPriceCache: { map: Map<string, number>; at: number } | null = null;
 let bnPriceInflight: Promise<Map<string, number>> | null = null;
@@ -360,6 +391,7 @@ export async function getKimchiTable(): Promise<KimchiTable> {
 // ── KRW 시그널 레이더 — 거래대금 상위 코인 + 등락 + 김프 (reason chip 원천) ──
 export type RadarCoin = {
   symbol: string;
+  nameKo: string; // 한글명 (업비트 마켓 기준)
   priceKrw: number;
   change24h: number; // %
   kimchi: number | null; // % (바이낸스 USDT 페어 없으면 null)
@@ -372,10 +404,11 @@ export type SignalRadar = { coins: RadarCoin[]; updatedAt: string };
 const RADAR_TTL_MS = 60_000;
 
 async function fetchSignalRadar(): Promise<SignalRadar> {
-  const [{ rows: krwRows, fetchedAt }, fx, priceMap] = await Promise.all([
+  const [{ rows: krwRows, fetchedAt }, fx, priceMap, namesKo] = await Promise.all([
     getAllKrwTickers(),
     fetchUsdKrw(),
     getBinancePrices().catch(() => new Map<string, number>()), // 김프는 보조 — 실패해도 레이더는 동작
+    getUpbitNamesKo().catch(() => new Map<string, string>()), // 한글명도 보조 — 실패 시 심볼 폴백
   ]);
   if (krwRows.length === 0) throw new Error("upbit all-KRW unavailable");
 
@@ -395,6 +428,7 @@ async function fetchSignalRadar(): Promise<SignalRadar> {
         : null;
     return {
       symbol,
+      nameKo: namesKo.get(symbol) ?? symbol,
       priceKrw: r.trade_price,
       change24h: r.signed_change_rate * 100,
       kimchi,

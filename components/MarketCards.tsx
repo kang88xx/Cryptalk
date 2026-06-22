@@ -24,15 +24,13 @@ function changeColor(n: number | null): string {
   return "text-ink-500";
 }
 
-// 카드 상단 넘버링 eyebrow
-function CardHead({ no, title, meta }: { no: string; title: string; meta: string }) {
+// 카드 상단 타이틀 바 — 다른 섹션과 동일하게 남색 배경 + 흰 글씨
+function CardHead({ title, meta }: { title: string; meta: string }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <span className="font-mono text-[11px] tracking-[0.16em] text-navy-500 uppercase">
-        {no} · {title}
-      </span>
+    <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
+      <h2 className="text-sm font-semibold text-white">{title}</h2>
       <span className="font-mono text-[10px] tracking-[0.12em] text-navy-300 uppercase">{meta}</span>
-    </div>
+    </header>
   );
 }
 
@@ -74,9 +72,10 @@ export default async function MarketCards() {
       <TickerTable />
 
       {/* 02 · BTC DOMINANCE(압축) + 환율 USD/KRW */}
-      <section className="flex flex-col border border-line bg-white p-5 transition-colors hover:border-navy-300">
-        <CardHead no="02" title="BTC Dominance" meta={`${formatRelativeTime(overview.updatedAt)} · CoinGecko`} />
+      <section className="flex flex-col border border-line bg-white transition-colors hover:border-navy-300">
+        <CardHead title="BTC Dominance" meta={`${formatRelativeTime(overview.updatedAt)} · CoinGecko`} />
 
+        <div className="flex flex-1 flex-col p-5">
         {/* 도미넌스 — 콤팩트 (숫자 + 시총 + 소형 스파크라인) */}
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -98,34 +97,18 @@ export default async function MarketCards() {
             width={96}
             height={36}
             stroke="#20305f"
-            accentRing="#EFC540"
+            accentRing="#20305f"
           />
         </div>
 
         <div className="my-4 h-px bg-line" />
 
-        {/* 환율 USD/KRW + 현재 테더(USDT) 가격 (기존 독립 섹션 통합) */}
-        <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <span className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-navy-900">환율 USD/KRW</span>
-            <span className="font-mono text-lg font-light tabular-nums text-navy-900">
-              {snapshot.usdKrw.toLocaleString()}
-            </span>
-            {fxLatestChange != null && (
-              <span
-                className={`font-mono text-[11px] tabular-nums ${
-                  fxLatestChange >= 0 ? "text-red-600" : "text-indigo-700"
-                }`}
-              >
-                {fxLatestChange >= 0 ? "+" : ""}
-                {fxLatestChange.toFixed(2)}%
-              </span>
-            )}
-          </span>
+        {/* 테더(USDT) 타이틀 + 환율 USD/KRW 보조 (위아래 순서: 테더 → 환율) */}
+        <div className="mb-1 flex flex-col gap-1">
           {exchanges.usdtUpbit != null && (
-            <span className="flex items-baseline gap-1.5 text-[12px] text-ink-500">
-              테더(USDT){" "}
-              <span className="font-mono text-[13px] tabular-nums text-navy-900">
+            <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-sm font-semibold text-navy-900">테더(USDT)</span>
+              <span className="font-mono text-lg font-light tabular-nums text-navy-900">
                 {Math.round(exchanges.usdtUpbit).toLocaleString()}원
               </span>
               {usdtKimchi != null && (
@@ -140,6 +123,22 @@ export default async function MarketCards() {
               )}
             </span>
           )}
+          <span className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[12px] text-ink-500">
+            환율 USD/KRW{" "}
+            <span className="font-mono text-[13px] tabular-nums text-navy-900">
+              {snapshot.usdKrw.toLocaleString()}
+            </span>
+            {fxLatestChange != null && (
+              <span
+                className={`font-mono text-[11px] tabular-nums ${
+                  fxLatestChange >= 0 ? "text-red-600" : "text-indigo-700"
+                }`}
+              >
+                {fxLatestChange >= 0 ? "+" : ""}
+                {fxLatestChange.toFixed(2)}%
+              </span>
+            )}
+          </span>
         </div>
 
         <FxChart
@@ -163,11 +162,13 @@ export default async function MarketCards() {
             </>
           )}
         </p>
+        </div>
       </section>
 
       {/* 03 · FEAR & GREED */}
-      <section className="flex flex-col border border-line bg-white p-5 transition-colors hover:border-navy-300">
-        <CardHead no="03" title="Fear &amp; Greed" meta="Daily" />
+      <section className="flex flex-col border border-line bg-white transition-colors hover:border-navy-300">
+        <CardHead title="Fear &amp; Greed" meta="Daily" />
+        <div className="flex flex-1 flex-col p-5">
         {latestFng ? (
           <>
             <div className="flex flex-col items-center">
@@ -195,12 +196,21 @@ export default async function MarketCards() {
               })}
             </div>
             <p className="mt-auto pt-3 font-mono text-[10px] tracking-[0.14em] text-navy-400 uppercase">
-              지난 6일 · BTC 기준 · Alternative.me
+              지난 6일 · BTC 기준 ·{" "}
+              <a
+                href="https://alternative.me/crypto/fear-and-greed-index/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-dotted underline-offset-2 transition-colors hover:text-navy-600"
+              >
+                Alternative.me
+              </a>
             </p>
           </>
         ) : (
           <p className="mt-4 text-sm text-ink-500">데이터를 불러오지 못했습니다.</p>
         )}
+        </div>
       </section>
     </div>
   );

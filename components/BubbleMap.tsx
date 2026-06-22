@@ -48,7 +48,7 @@ type Node = {
   vy: number;
 };
 
-const COUNT = 44; // 박스를 채울 만큼의 시총 상위 N개
+const COUNT = 100; // 시총 상위 N개(스테이블코인 제외)
 
 // Cryptalk 관례: 상승=빨강 / 하락=남보라
 function colorFor(change: number): string {
@@ -228,19 +228,40 @@ export default function BubbleMap() {
                   r={n.r}
                   fill={colorFor(n.change)}
                   fillOpacity={hover === n.coin.id ? 0.3 : 0.16}
-                  stroke={colorFor(n.change)}
-                  strokeWidth={1.25}
                 />
-                {n.r > 16 && (
-                  <image
-                    href={n.coin.image}
-                    x={-n.r * 0.4}
-                    y={-n.r * 0.6}
-                    width={n.r * 0.8}
-                    height={n.r * 0.8}
-                    preserveAspectRatio="xMidYMid meet"
-                  />
-                )}
+                {n.r > 16 &&
+                  (() => {
+                    const lr = n.r * 0.42; // 로고 반지름 (버블 대비 적당한 비율)
+                    const lcy = -n.r * 0.2; // 로고 중심 y (심볼 텍스트 위)
+                    const clipId = `logo-clip-${n.coin.id}`;
+                    return (
+                      <>
+                        <clipPath id={clipId}>
+                          <circle cx={0} cy={lcy} r={lr} />
+                        </clipPath>
+                        {/* 흰 배경 원 — 사각/투명 로고도 원형으로 보이게 */}
+                        <circle cx={0} cy={lcy} r={lr} fill="#fff" />
+                        <image
+                          href={n.coin.image}
+                          x={-lr}
+                          y={lcy - lr}
+                          width={lr * 2}
+                          height={lr * 2}
+                          clipPath={`url(#${clipId})`}
+                          preserveAspectRatio="xMidYMid slice"
+                        />
+                        {/* 얇은 테두리로 원형 경계 또렷하게 */}
+                        <circle
+                          cx={0}
+                          cy={lcy}
+                          r={lr}
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth={0.75}
+                        />
+                      </>
+                    );
+                  })()}
                 <text
                   textAnchor="middle"
                   y={n.r > 16 ? n.r * 0.42 : 3}

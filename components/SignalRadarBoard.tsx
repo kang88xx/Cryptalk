@@ -25,27 +25,27 @@ export default function SignalRadarBoard({
   const [selected, setSelected] = useState<DrawerCoin | null>(null);
 
   return (
-    <section className="border border-line bg-white">
-      <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-semibold text-white">지금 봐야 할 코인</h2>
-          <span className="hidden text-[11px] font-medium tracking-[0.12em] text-navy-300 uppercase sm:inline">
-            KRW Signal Radar
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {breadth && (
-            <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${toneClass(breadth.signal.tone)}`}>
-              상승 {breadth.upPct.toFixed(0)}% · {breadth.signal.label}
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* 섹션 1: 지금 봐야 할 코인 */}
+      <section className="flex flex-col border border-line bg-white">
+        <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-sm font-semibold text-white">지금 봐야 할 코인</h2>
+            <span className="hidden text-[11px] font-medium tracking-[0.12em] text-navy-300 uppercase sm:inline">
+              KRW Signal Radar
             </span>
-          )}
-          <span className="text-[10px] text-navy-300">{freshness}</span>
-        </div>
-      </header>
+          </div>
+          <div className="flex items-center gap-2">
+            {breadth && (
+              <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${toneClass(breadth.signal.tone)}`}>
+                상승 {breadth.upPct.toFixed(0)}% · {breadth.signal.label}
+              </span>
+            )}
+            <span className="text-[10px] text-navy-300">{freshness}</span>
+          </div>
+        </header>
 
-      <div className="flex flex-col lg:flex-row">
-        {/* 좌측: 코인 시그널 리스트 (50%) */}
-        <div className="min-w-0 lg:w-1/2 lg:flex-none">
+        <div className="min-w-0 flex-1">
           {items.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-ink-500">데이터를 불러오지 못했습니다.</p>
           ) : (
@@ -54,16 +54,19 @@ export default function SignalRadarBoard({
                 <li key={coin.symbol}>
                   <button
                     onClick={() => setSelected({ coin, chips })}
-                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-paper"
+                    className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-xs hover:bg-paper"
                   >
-                    <span className="w-4 shrink-0 text-center text-xs font-bold text-navy-300">
+                    <span className="w-4 shrink-0 text-center text-[10px] font-bold text-navy-300">
                       {coin.volumeRank}
                     </span>
-                    <span className="w-12 shrink-0 font-semibold text-navy-900">{coin.symbol}</span>
-                    <span className="hidden w-24 shrink-0 text-right font-mono text-ink-900 sm:block">
+                    <span className="flex w-20 shrink-0 flex-col leading-tight">
+                      <span className="truncate text-[11px] font-semibold text-navy-900">{coin.nameKo}</span>
+                      <span className="font-mono text-[9px] tracking-wide text-ink-400">{coin.symbol}</span>
+                    </span>
+                    <span className="hidden w-20 shrink-0 text-right font-mono text-[11px] text-ink-900 sm:block">
                       {formatKrw(coin.priceKrw)}
                     </span>
-                    <span className={`w-16 shrink-0 text-right font-mono font-semibold ${changeColor(coin.change24h)}`}>
+                    <span className={`w-14 shrink-0 text-right font-mono text-[11px] font-semibold ${changeColor(coin.change24h)}`}>
                       {formatPercent(coin.change24h)}
                     </span>
                     <span className="flex min-w-0 flex-1 flex-wrap justify-end gap-1">
@@ -83,23 +86,27 @@ export default function SignalRadarBoard({
           )}
         </div>
 
-        {/* 우측: 시총 상위 버블맵 (50%) */}
-        <div className="min-w-0 border-t border-line p-3 lg:w-1/2 lg:flex-none lg:border-l lg:border-t-0">
-          <div className="mb-2 flex items-baseline justify-between">
-            <h3 className="text-xs font-semibold text-navy-900">시총 상위 버블맵</h3>
-            <span className="eyebrow">Bubble Map</span>
-          </div>
-          <div className="h-[300px] lg:h-[400px]">
+        <p className="border-t border-line px-4 py-2 text-[10px] text-ink-500">
+          ※ 스테이블코인(USDT·USDC 등)은 시세 변동 신호 대상이 아니므로 수집·표시하지 않습니다.
+        </p>
+      </section>
+
+      {/* 섹션 2: 시총 상위 버블맵 */}
+      <section className="flex flex-col border border-line bg-white">
+        <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
+          <h2 className="text-sm font-semibold text-white">시총 상위 버블맵</h2>
+          <span className="text-[11px] font-medium tracking-[0.12em] text-navy-300 uppercase">
+            Bubble Map
+          </span>
+        </header>
+        <div className="flex-1 p-3">
+          <div className="h-[340px] lg:h-[460px]">
             <BubbleMap />
           </div>
         </div>
-      </div>
-
-      <p className="border-t border-line px-4 py-2 text-[10px] text-ink-500">
-        ※ 스테이블코인(USDT·USDC 등)은 시세 변동 신호 대상이 아니므로 수집·표시하지 않습니다.
-      </p>
+      </section>
 
       <CoinDrawer item={selected} onClose={() => setSelected(null)} />
-    </section>
+    </div>
   );
 }

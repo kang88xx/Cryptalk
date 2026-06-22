@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect } from "react";
 import type { RadarCoin } from "@/lib/ticker";
 import type { Signal } from "@/lib/signals";
@@ -43,7 +44,10 @@ export default function CoinDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-baseline justify-between">
-          <h3 className="text-xl font-bold text-navy-900">{coin.symbol}</h3>
+          <h3 className="flex items-baseline gap-2 text-xl font-bold text-navy-900">
+            {coin.nameKo}
+            <span className="font-mono text-xs font-medium tracking-wide text-ink-400">{coin.symbol}</span>
+          </h3>
           <span className="font-mono text-lg text-ink-900">{formatKrw(coin.priceKrw)}원</span>
         </div>
 
@@ -88,16 +92,18 @@ export default function CoinDrawer({
             href={upbitUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="border border-navy-300 py-2 text-center text-sm font-medium text-navy-900 hover:border-navy-900"
+            className="flex items-center justify-center gap-1.5 border border-navy-300 py-2 text-center text-sm font-medium text-navy-900 hover:border-navy-900"
           >
+            <Image src="/upbit.png" alt="업비트" width={16} height={16} className="rounded-sm" />
             업비트에서 보기 ↗
           </a>
           <a
             href={binanceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="border border-navy-300 py-2 text-center text-sm font-medium text-navy-900 hover:border-navy-900"
+            className="flex items-center justify-center gap-1.5 border border-navy-300 py-2 text-center text-sm font-medium text-navy-900 hover:border-navy-900"
           >
+            <Image src="/binance.jpg" alt="바이낸스" width={16} height={16} className="rounded-sm" />
             바이낸스 ↗
           </a>
         </div>

@@ -42,9 +42,9 @@ export default function TickerTable() {
 
   return (
     <section className="border border-line bg-white">
-      <header className="flex items-baseline justify-between border-b border-line px-4 py-3">
-        <h2 className="text-sm font-semibold text-navy-900">실시간 시세</h2>
-        <span className="rail">
+      <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
+        <h2 className="text-sm font-semibold text-white">실시간 시세</h2>
+        <span className="font-mono text-[10px] tracking-[0.12em] text-navy-300 uppercase">
           UPBIT · USD/KRW {snapshot ? snapshot.usdKrw.toLocaleString() : "–"}
         </span>
       </header>

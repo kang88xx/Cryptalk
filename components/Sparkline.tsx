@@ -5,6 +5,7 @@ export default function Sparkline({
   stroke = "#636DDB",
   baseline,
   accentRing,
+  pulse,
 }: {
   values: number[];
   width?: number;
@@ -12,6 +13,7 @@ export default function Sparkline({
   stroke?: string;
   baseline?: number; // 기준선 (예: 김프 0%)
   accentRing?: string; // 끝점 강조 링 색 (예: 앰버)
+  pulse?: boolean; // 끝점 진행중 펄스 모션 (장중일 때만 true)
 }) {
   if (values.length < 2) {
     return (
@@ -81,11 +83,25 @@ export default function Sparkline({
           </circle>
         </>
       )}
+      {pulse && (
+        // 진행중 펄스 — 끝점에서 확장하며 사라지는 모션 (장중 표시)
+        <circle
+          cx={x(values.length - 1)}
+          cy={y(values[values.length - 1])}
+          r="2.5"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="1.4"
+        >
+          <animate attributeName="r" values="2.5;9" dur="1.6s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.8;0" dur="1.6s" repeatCount="indefinite" />
+        </circle>
+      )}
       <circle
         cx={x(values.length - 1)}
         cy={y(values[values.length - 1])}
         r={accentRing ? "3" : "2.5"}
-        fill={stroke}
+        fill={accentRing ?? stroke}
       />
     </svg>
   );
