@@ -54,21 +54,37 @@ export default function Sparkline({
           strokeDasharray="3 3"
         />
       )}
-      <polyline points={points} fill="none" stroke={stroke} strokeWidth={accentRing ? 2 : 1.5} />
+      <polyline points={points} fill="none" stroke={stroke} strokeWidth={accentRing ? 1.4 : 1.2} />
       {accentRing && (
-        <circle
-          cx={x(values.length - 1)}
-          cy={y(values[values.length - 1])}
-          r="6"
-          fill="none"
-          stroke={accentRing}
-          strokeWidth="2"
-        />
+        <>
+          {/* 정적 링 (항상 보이는 노란 강조) */}
+          <circle
+            cx={x(values.length - 1)}
+            cy={y(values[values.length - 1])}
+            r="5"
+            fill="none"
+            stroke={accentRing}
+            strokeWidth="1.6"
+            opacity="0.55"
+          />
+          {/* 펄스 링 — 확장하며 사라지는 모션 (동시접속 점과 동일 톤) */}
+          <circle
+            cx={x(values.length - 1)}
+            cy={y(values[values.length - 1])}
+            r="5"
+            fill="none"
+            stroke={accentRing}
+            strokeWidth="1.8"
+          >
+            <animate attributeName="r" values="4;11" dur="1.6s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.85;0" dur="1.6s" repeatCount="indefinite" />
+          </circle>
+        </>
       )}
       <circle
         cx={x(values.length - 1)}
         cy={y(values[values.length - 1])}
-        r={accentRing ? "3.5" : "2.5"}
+        r={accentRing ? "3" : "2.5"}
         fill={stroke}
       />
     </svg>

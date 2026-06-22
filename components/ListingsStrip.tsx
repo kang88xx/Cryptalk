@@ -32,6 +32,8 @@ function isImminent(scheduledAt: string | null, now: number): boolean {
 // 금일 신규 상장 예정 피드 — @NewListingsFeed 채널 기반, 캘린더 상단 노출
 export default async function ListingsStrip() {
   const { listings } = await getTodayListings();
+  // 서버 컴포넌트(요청마다 1회 렌더) — 상장 임박 판정용 현재시각. SSR이라 순수성 규칙 예외.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
   return (

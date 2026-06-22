@@ -379,8 +379,11 @@ async function fetchSignalRadar(): Promise<SignalRadar> {
   ]);
   if (krwRows.length === 0) throw new Error("upbit all-KRW unavailable");
 
+  // 스테이블코인(USDT·USDC 등)은 '봐야 할 코인'에서 제외
+  const RADAR_STABLES = new Set(["USDT", "USDC", "DAI", "TUSD", "USDS", "FDUSD"]);
   const liquid = [...krwRows]
     .filter((r) => (r.acc_trade_price_24h ?? 0) >= LIQUIDITY_FLOOR_KRW)
+    .filter((r) => !RADAR_STABLES.has(r.market.replace("KRW-", "")))
     .sort((a, b) => b.acc_trade_price_24h - a.acc_trade_price_24h);
 
   const coins: RadarCoin[] = liquid.slice(0, 12).map((r, i) => {

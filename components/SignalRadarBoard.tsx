@@ -26,10 +26,12 @@ export default function SignalRadarBoard({
 
   return (
     <section className="border border-line bg-white">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2.5">
+      <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-semibold text-navy-900">지금 봐야 할 코인</h2>
-          <span className="eyebrow hidden sm:inline">KRW Signal Radar</span>
+          <h2 className="text-sm font-semibold text-white">지금 봐야 할 코인</h2>
+          <span className="hidden text-[11px] font-medium tracking-[0.12em] text-navy-300 uppercase sm:inline">
+            KRW Signal Radar
+          </span>
         </div>
         <div className="flex items-center gap-2">
           {breadth && (
@@ -87,11 +89,15 @@ export default function SignalRadarBoard({
             <h3 className="text-xs font-semibold text-navy-900">시총 상위 버블맵</h3>
             <span className="eyebrow">Bubble Map</span>
           </div>
-          <div className="h-[400px]">
+          <div className="h-[300px] lg:h-[400px]">
             <BubbleMap />
           </div>
         </div>
       </div>
+
+      <p className="border-t border-line px-4 py-2 text-[10px] text-ink-500">
+        ※ 스테이블코인(USDT·USDC 등)은 시세 변동 신호 대상이 아니므로 수집·표시하지 않습니다.
+      </p>
 
       <CoinDrawer item={selected} onClose={() => setSelected(null)} />
     </section>

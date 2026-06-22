@@ -1,5 +1,9 @@
 "use client";
 
+// d3-force 시뮬레이션이 노드 좌표를 ref(nodesRef/sizeRef)에 보관하고 setTick으로 리렌더를 유발하는
+// 명령형 패턴 — 렌더 중 ref 읽기/동기화가 의도적이다. (검수 결과 정확성 이슈 없음)
+/* eslint-disable react-hooks/refs */
+
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   forceSimulation,

@@ -26,7 +26,7 @@ export default async function SignalRadar() {
     listings.listings.map((l) => l.symbol?.toUpperCase()).filter((s): s is string => !!s)
   );
 
-  const items: DrawerCoin[] = radar.coins.slice(0, 6).map((coin) => ({
+  const items: DrawerCoin[] = radar.coins.slice(0, 10).map((coin) => ({
     coin,
     chips: radarChips(coin, {
       event: eventTickers.has(coin.symbol.toUpperCase()),

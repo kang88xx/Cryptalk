@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPostDate } from "@/lib/format";
-import TickerTable from "@/components/TickerTable";
 import MarketCards from "@/components/MarketCards";
-import FxRate from "@/components/FxRate";
 import SignalRadar from "@/components/SignalRadar";
 import ListingsStrip from "@/components/ListingsStrip";
 import UpcomingEvents from "@/components/UpcomingEvents";
@@ -35,18 +33,14 @@ export default async function Home() {
   return (
     <div className="flex flex-col gap-6">
       <MarketCards />
-      <FxRate />
       <SignalRadar />
       <ListingsStrip />
       <UpcomingEvents />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="flex flex-col gap-6">
-      {/* 실시간 시세 — 좌측 본문 상단 */}
-      <TickerTable />
       <section className="border border-line bg-white">
-        <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-navy-900">자유게시판 최신글</h2>
-          <Link href="/free" className="text-xs text-ink-500 hover:text-navy-900">
+        <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
+          <h2 className="text-sm font-semibold text-white">자유게시판 최신글</h2>
+          <Link href="/free" className="text-xs text-navy-100 hover:text-white">
             더보기 +
           </Link>
         </header>
@@ -76,13 +70,12 @@ export default async function Home() {
           </ul>
         )}
       </section>
-      </div>
 
       <aside className="flex flex-col gap-6">
         <section className="border border-line bg-white">
-          <header className="flex items-center justify-between border-b border-line px-4 py-2.5">
-            <h2 className="text-sm font-semibold text-navy-900">시장 분석</h2>
-            <Link href="/analysis" className="text-xs text-ink-500 hover:text-navy-900">
+          <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
+            <h2 className="text-sm font-semibold text-white">시장 분석</h2>
+            <Link href="/analysis" className="text-xs text-navy-100 hover:text-white">
               더보기 +
             </Link>
           </header>
@@ -112,8 +105,8 @@ export default async function Home() {
           )}
         </section>
         <section className="border border-line bg-white">
-          <header className="border-b border-line px-4 py-2.5">
-            <h2 className="text-sm font-semibold text-navy-900">인기글 TOP 9</h2>
+          <header className="bg-navy-900 px-4 py-2.5">
+            <h2 className="text-sm font-semibold text-white">인기글 TOP 9</h2>
           </header>
           {hotPosts.length === 0 ? (
             <p className="px-4 py-6 text-center text-xs text-ink-500">아직 인기글이 없습니다.</p>

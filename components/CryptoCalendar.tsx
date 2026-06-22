@@ -113,9 +113,13 @@ export default function CryptoCalendar({
   const [now, setNow] = useState(0); // 임박 판정용 — 마운트 후 설정(하이드레이션 안전)
 
   useEffect(() => {
-    setNow(Date.now());
+    // 초기값은 다음 틱에 설정 (effect 본문 동기 setState 회피 — 하이드레이션 안전)
+    const first = setTimeout(() => setNow(Date.now()), 0);
     const id = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(id);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
   }, []);
 
   const groups = useMemo(() => {

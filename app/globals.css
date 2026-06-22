@@ -11,6 +11,7 @@
   --color-navy-900: #20305f;
   --color-navy-700: #35478c;
   --color-navy-500: #526394;
+  --color-navy-400: #717c9d;
   --color-navy-300: #9aa4c8;
   --color-navy-100: #dadeed;
 
@@ -23,7 +24,10 @@
   --color-indigo-700: #4853c4;
 
   --color-ink-900: #0f1320;
+  --color-ink-700: #363c4f;
   --color-ink-500: #5c637a;
+  --color-ink-400: #787f93;
+  --color-ink-300: #9aa0b0;
 }
 
 @theme inline {
