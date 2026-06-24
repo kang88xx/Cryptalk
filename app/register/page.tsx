@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import InAppBrowserNotice from "@/components/InAppBrowserNotice";
+import { isInAppBrowser, openExternalBrowser } from "@/lib/inapp";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -98,7 +99,14 @@ export default function RegisterPage() {
       </div>
       <button
         type="button"
-        onClick={() => signIn("google", { callbackUrl: "/" })}
+        onClick={() => {
+          // 인앱 브라우저면 구글로 보내지 말고 외부 브라우저로 전환(403 차단 회피)
+          if (isInAppBrowser()) {
+            openExternalBrowser();
+            return;
+          }
+          signIn("google", { callbackUrl: "/" });
+        }}
         className="flex w-full items-center justify-center gap-2 border border-navy-300 bg-white py-2 text-sm font-medium text-ink-900 hover:border-navy-900"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
