@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createPost } from "@/lib/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 const EDITOR_MIN_LEVEL = 10;
 const SYMBOLS = ["BTC", "ETH", "XRP", "SOL", "TRX"];
@@ -64,9 +65,7 @@ export default async function AnalysisWritePage() {
           className="resize-y border border-navy-300 bg-white px-3 py-2 text-sm leading-6 text-ink-900 placeholder:text-navy-300 focus:border-navy-700 focus:outline-none"
         />
         <div className="flex justify-end">
-          <button className="bg-amber-500 px-5 py-2 text-sm font-semibold text-navy-950 hover:bg-amber-400">
-            등록
-          </button>
+          <SubmitButton />
         </div>
       </form>
     </div>

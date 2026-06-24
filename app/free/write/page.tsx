@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { createPost } from "@/lib/actions";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function WritePage() {
   const session = await auth();
@@ -28,9 +29,7 @@ export default async function WritePage() {
           className="resize-y border border-navy-300 bg-white px-3 py-2 text-sm leading-6 text-ink-900 placeholder:text-navy-300 focus:border-navy-700 focus:outline-none"
         />
         <div className="flex justify-end gap-2">
-          <button className="bg-amber-500 px-5 py-2 text-sm font-semibold text-navy-950 hover:bg-amber-400">
-            등록
-          </button>
+          <SubmitButton />
         </div>
       </form>
     </div>

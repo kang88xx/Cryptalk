@@ -2,8 +2,9 @@ import { prisma } from "@/lib/prisma";
 
 // 서버리스 인스턴스 간 공유 캐시 (DB 백엔드).
 // 요청 시점에는 캐시만 읽고, 만료 시에만 inline 갱신(stale-while-revalidate).
-// 프로덕션에서는 Vercel Cron이 미리 갱신해 두므로 inline 갱신은 거의 발생하지 않는다.
-// 같은 인스턴스 내 동시 요청은 inflight로 합쳐 외부 호출/DB write 폭주를 막는다.
+// (무료플랜의 Vercel Cron은 하루 1회뿐이라, 실제로는 만료 후 첫 방문자 요청 때 inline 갱신되는
+//  것이 주 경로다. TTL과 inflight 합치기로 외부 호출/DB write 빈도를 억제한다.)
+// 같은 인스턴스 내 동시 요청·DB 조회 실패 시에도 inflight로 합쳐 호출 폭주를 막는다.
 
 const inflight = new Map<string, Promise<unknown>>();
 
@@ -19,8 +20,7 @@ export async function cachedJson<T>(
       select: { data: true, updatedAt: true },
     });
   } catch {
-    // DB 조회 실패 → 직접 fetch로 폴백
-    return fetcher();
+    // DB 조회 실패 → row=null 유지하고 아래 inflight 경유로 갱신(동시 요청 합쳐 호출 폭주 방지)
   }
 
   const fresh = row && Date.now() - row.updatedAt.getTime() < ttlMs;

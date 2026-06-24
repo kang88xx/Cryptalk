@@ -1,9 +1,10 @@
 // @NewListingsFeed 텔레그램 공개 채널 → 금일 신규 상장 예정 추출
-// 대상: 바이낸스 선물 · Bithumb · Robinhood · Coinbase(로드맵 포함)
+// 대상: 바이낸스 선물 · Upbit · Bithumb · Bybit · Robinhood · Coinbase(로드맵 포함)
 // 봇/로그인 없이 t.me/s 웹 미리보기를 30분 간격으로 스크래핑
 
 import { lookup } from "node:dns/promises";
 import { cachedJson } from "@/lib/cache";
+import { kstDay } from "@/lib/time";
 
 // ── SSRF 방어 — 채널에서 파싱한 외부 URL은 공격자 제어 가능 ──
 function isPrivateIPv4(ip: string): boolean {
@@ -60,7 +61,7 @@ async function isSafePublicUrl(raw: string): Promise<boolean> {
   }
 }
 
-export type Exchange = "Binance" | "Bithumb" | "Robinhood" | "Coinbase";
+export type Exchange = "Binance" | "Upbit" | "Bithumb" | "Bybit" | "Robinhood" | "Coinbase";
 
 export type Listing = {
   id: string; // 메시지 고유 (t.me 링크 끝 번호)
@@ -83,7 +84,9 @@ const FUTURES_RE = /futures|perpetual|perp\b/i;
 // 바이낸스는 선물(futures/perpetual)만, 나머지는 상장·로드맵 전부.
 function classifyExchange(text: string): Exchange | null {
   if (/binance/i.test(text) && FUTURES_RE.test(text)) return "Binance";
+  if (/upbit/i.test(text)) return "Upbit"; // 업비트 상장(현물·KRW) — 김프 직결
   if (/bithumb/i.test(text)) return "Bithumb";
+  if (/bybit/i.test(text)) return "Bybit";
   if (/robinhood/i.test(text)) return "Robinhood";
   if (/coinbase/i.test(text)) return "Coinbase"; // 상장 + 로드맵(roadmap) 포함
   return null;
@@ -105,11 +108,6 @@ function decodeEntities(s: string): string {
     .trim();
 }
 
-// KST(UTC+9) 기준 YYYY-MM-DD
-function kstDay(d: Date): string {
-  return new Date(d.getTime() + 9 * 3600_000).toISOString().slice(0, 10);
-}
-
 function parseListings(html: string): Listing[] {
   const out: Listing[] = [];
   const re = /tgme_widget_message_text[^>]*>([\s\S]*?)<\/div>/g;
@@ -118,7 +116,7 @@ function parseListings(html: string): Listing[] {
     const inner = m[1];
     const text = decodeEntities(inner);
     if (!text) continue;
-    // 노출 대상 거래소만 (바이낸스 선물 · Bithumb · Robinhood · Coinbase)
+    // 노출 대상 거래소만 (바이낸스 선물 · Upbit · Bithumb · Bybit · Robinhood · Coinbase)
     const exchange = classifyExchange(text);
     if (!exchange) continue;
 
@@ -209,19 +207,36 @@ function parseBithumbTradeTime(title: string, publishedAt: string): string | nul
   return kstToUtcIso(y, mo, d, hh, mm);
 }
 
+// 상장 예정 시각을 읽기 위해 fetch를 허용할 거래소 공식 도메인 (allow-list).
+// 정적 도메인만 허용하므로 DNS 리바인딩(TOCTOU)/HTTP 다운그레이드가 원천 무력화된다.
+// 목록 밖 도메인은 fetch하지 않고 '미정'(null) 처리 — scheduledAt은 best-effort라 안전.
+const ALLOWED_FETCH_HOSTS = [
+  /(^|\.)binance\.com$/i,
+  /(^|\.)bithumb\.com$/i,
+  /(^|\.)upbit\.com$/i,
+  /(^|\.)bybit\.com$/i,
+  /(^|\.)coinbase\.com$/i,
+  /(^|\.)robinhood\.com$/i,
+];
+function isAllowedFetchHost(hostname: string): boolean {
+  return ALLOWED_FETCH_HOSTS.some((re) => re.test(hostname));
+}
+
 // 원문 공지에서 상장 예정 시각(UTC)을 best-effort로 추출. 못 찾으면 null.
 async function extractScheduledTime(url: string | null): Promise<string | null> {
   if (!url) return null;
-  let hostname: string;
+  let u: URL;
   try {
-    hostname = new URL(url).hostname;
+    u = new URL(url);
   } catch {
     return null;
   }
+  const hostname = u.hostname;
   // X·트위터 등 JS 렌더 페이지는 정적으로 시각을 못 읽음 → 미정 처리
   if (/(^|\.)(x|twitter)\.com$/i.test(hostname)) return null;
-  // SSRF 방어 — 사설/메타데이터로 해석되는 URL은 fetch하지 않음
-  if (!(await isSafePublicUrl(url))) return null;
+  // SSRF 방어 — https + 거래소 공식 도메인 allow-list만 fetch (리바인딩/다운그레이드 차단)
+  if (u.protocol !== "https:" || !isAllowedFetchHost(hostname)) return null;
+  if (!(await isSafePublicUrl(url))) return null; // 추가 방어: 사설 IP로 해석되는 호스트 차단
   try {
     const res = await fetch(url, {
       signal: AbortSignal.timeout(7000),
@@ -307,11 +322,11 @@ async function scrape(): Promise<{ listings: Listing[]; updatedAt: string }> {
   return { listings, updatedAt: new Date().toISOString() };
 }
 
-// 금일(KST) 신규 상장 예정 (바이낸스 선물·Bithumb·Robinhood·Coinbase) — DB 공유 캐시(30분)
+// 금일(KST) 신규 상장 예정 (바이낸스 선물·Upbit·Bithumb·Bybit·Robinhood·Coinbase) — DB 공유 캐시(30분)
 export async function getTodayListings(): Promise<{ listings: Listing[]; updatedAt: string }> {
   try {
-    // -v3: 빗썸 거래시각(공지 제목 파싱) 도입 — 옛 캐시 무시하고 즉시 새 형식으로 갱신
-    return await cachedJson("listings-v3", TTL_MS, scrape);
+    // -v4: Upbit·Bybit 노출 대상 추가 — 옛 캐시 무시하고 즉시 새 분류로 갱신
+    return await cachedJson("listings-v4", TTL_MS, scrape);
   } catch {
     return { listings: [], updatedAt: new Date(0).toISOString() };
   }

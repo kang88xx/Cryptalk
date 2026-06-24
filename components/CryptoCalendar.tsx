@@ -112,6 +112,39 @@ export default function CryptoCalendar({
   const [excluded, setExcluded] = useState<Set<string>>(new Set()); // 체크 해제된 소분류
   const [now, setNow] = useState(0); // 임박 판정용 — 마운트 후 설정(하이드레이션 안전)
 
+  const LS_KEY = "cryptalk:calendar:excluded";
+
+  // 마운트 시 localStorage 에서 복원 — SSR 에서는 실행되지 않으므로 하이드레이션 안전.
+  // 동기 setState 회피(react-hooks/set-state-in-effect)를 위해 다음 틱에 적용 — 위 now 패턴과 동일.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let raw: string | null = null;
+    try {
+      raw = window.localStorage.getItem(LS_KEY);
+    } catch {
+      return; // 접근 불가(개인정보 모드 등) — 기본값 유지
+    }
+    if (!raw) return;
+    const t = setTimeout(() => {
+      try {
+        setExcluded(new Set(JSON.parse(raw) as string[]));
+      } catch {
+        // 파싱 실패 시 기본값(빈 Set) 유지
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  // excluded 변경 시 localStorage 에 동기화.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(LS_KEY, JSON.stringify([...excluded]));
+    } catch {
+      // 저장 실패(개인정보 모드 등)는 무시
+    }
+  }, [excluded]);
+
   useEffect(() => {
     // 초기값은 다음 틱에 설정 (effect 본문 동기 setState 회피 — 하이드레이션 안전)
     const first = setTimeout(() => setNow(Date.now()), 0);

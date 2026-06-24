@@ -1,4 +1,5 @@
 import { cachedJson } from "@/lib/cache";
+import { fetchJson } from "@/lib/http";
 
 export type FngPoint = {
   value: number;
@@ -15,16 +16,6 @@ export type MarketOverview = {
 };
 
 const TTL_MS = 5 * 60_000;
-
-async function fetchJson<T>(url: string, timeoutMs = 6000): Promise<T> {
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(timeoutMs),
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`${url} -> ${res.status}`);
-  return res.json() as Promise<T>;
-}
 
 type CoinGeckoGlobal = {
   data: {
@@ -139,7 +130,7 @@ async function fetchFxHistory(): Promise<FxPoint[]> {
 
 export async function getFxHistory(): Promise<FxPoint[]> {
   try {
-    return await cachedJson("fxHistory", 60 * 60_000, fetchFxHistory);
+    return await cachedJson("fxHistory", 15 * 60_000, fetchFxHistory);
   } catch {
     return [];
   }

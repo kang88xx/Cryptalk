@@ -59,6 +59,7 @@ function colorFor(change: number): string {
 
 export default function BubbleMap() {
   const [coins, setCoins] = useState<BubbleCoin[]>([]);
+  const [error, setError] = useState(false);
   const [period, setPeriod] = useState<Period>("24h");
   const [hover, setHover] = useState<string | null>(null);
   const [, setTick] = useState(0);
@@ -86,19 +87,31 @@ export default function BubbleMap() {
   useEffect(() => {
     let alive = true;
     const load = async () => {
+      if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
       try {
         const res = await fetch("/api/bubbles");
+        if (!res.ok) throw new Error("non-ok");
         const json = await res.json();
-        if (alive && Array.isArray(json.coins)) setCoins(json.coins.slice(0, COUNT));
+        if (alive) {
+          if (Array.isArray(json.coins)) {
+            setCoins(json.coins.slice(0, COUNT));
+            setError(false);
+          }
+        }
       } catch {
-        /* 실패 시 직전 상태 유지 */
+        if (alive) setError(true); // 재시도 버튼 표시
       }
     };
     load();
     const t = setInterval(load, 60_000);
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
       clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -289,9 +302,33 @@ export default function BubbleMap() {
           </svg>
         )}
 
-        {nodes.length === 0 && (
+        {nodes.length === 0 && !error && (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-ink-500">
             버블맵 로딩 중…
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <span className="text-xs text-ink-500">데이터를 불러오지 못했어요</span>
+            <button
+              onClick={() => {
+                setError(false);
+                void fetch("/api/bubbles")
+                  .then(async (res) => {
+                    if (!res.ok) throw new Error("non-ok");
+                    const json = await res.json();
+                    if (Array.isArray(json.coins)) {
+                      setCoins(json.coins.slice(0, COUNT));
+                      setError(false);
+                    }
+                  })
+                  .catch(() => setError(true));
+              }}
+              className="rounded bg-navy-900 px-3 py-1 text-[11px] text-white hover:bg-navy-700"
+            >
+              다시 시도
+            </button>
           </div>
         )}
 

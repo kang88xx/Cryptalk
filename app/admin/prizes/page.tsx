@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { isAdmin, createPrize, updatePrize, deletePrize } from "@/lib/actions";
+import { createPrize, updatePrize, deletePrize } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -22,16 +21,13 @@ const inputCls =
 const labelCls = "mb-1 block text-[11px] font-medium text-ink-500";
 
 export default async function AdminPrizesPage() {
-  if (!(await isAdmin())) redirect("/");
-
   const prizes = await prisma.prize.findMany({
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     include: { _count: { select: { wins: true } } },
   });
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <p className="eyebrow">Admin</p>
+    <div>
       <h1 className="mb-1 text-lg font-semibold text-navy-900">랜덤박스 상품 관리</h1>
       <p className="mb-4 text-xs text-ink-500">
         가중치가 클수록 자주 당첨됩니다. 재고를 비우면 무제한, 숫자를 넣으면 한정 수량입니다.

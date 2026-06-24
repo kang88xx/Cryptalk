@@ -13,6 +13,7 @@ function changeColor(n: number | null): string {
 
 export default function TickerBar() {
   const [snapshot, setSnapshot] = useState<TickerSnapshot | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -20,11 +21,14 @@ export default function TickerBar() {
       if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
       try {
         const res = await fetch("/api/ticker");
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("non-ok");
         const data = (await res.json()) as TickerSnapshot;
-        if (alive) setSnapshot(data);
+        if (alive) {
+          setSnapshot(data);
+          setError(false);
+        }
       } catch {
-        // 일시적 네트워크 오류는 다음 폴링에서 복구
+        if (alive) setError(true); // 인라인 오류 표시
       }
     };
     load();
@@ -45,7 +49,9 @@ export default function TickerBar() {
   return (
     <div className="overflow-hidden bg-navy-900">
       <div className="ticker-track flex w-max items-center gap-10 px-4 py-2 font-mono text-[11px] tracking-wide whitespace-nowrap">
-        {items.length === 0 ? (
+        {error ? (
+          <span className="text-red-400">시세 불러오기 실패</span>
+        ) : items.length === 0 ? (
           <span className="text-navy-300">LOADING MARKET DATA...</span>
         ) : (
           [...items, ...items].map((t, i) => (

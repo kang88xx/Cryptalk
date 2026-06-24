@@ -19,9 +19,9 @@ export const maxDuration = 60;
 const KIMP_INTERVAL_MS = 5 * 60_000;
 const MARKET_INTERVAL_MS = 15 * 60_000;
 
-// Vercel Cron이 주기적으로 호출. getter는 TTL을 존중하므로(만료된 키만 실제 갱신)
-// 크론 주기와 무관하게 과갱신 없이 캐시를 따뜻하게 유지한다. 스냅샷은 요청 경로에서
-// 분리해 방문수와 무관하게 일정 주기로만 적재한다.
+// Vercel Cron 호출(무료플랜은 하루 1회). 만료된 캐시 키를 한 번에 데우고, 김프/도미넌스
+// 스냅샷을 요청 경로와 분리해 적재한다. 실시간 시세 신선도는 캐시 TTL + 첫 방문자 inline
+// 갱신(cache.ts)이 담당하므로, 이 크론이 자주 못 돌아도 데이터 자체는 갱신된다.
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   const authed = secret ? req.headers.get("authorization") === `Bearer ${secret}` : false;
@@ -89,6 +89,7 @@ export async function GET(req: Request) {
     // 정리 실패는 무시
   }
 
-  // 워밍 일부 실패 시 200이 아닌 상태로 알려 크론 헬스에 반영
+  // 워밍 중 '하드 실패'(Promise 거부)만 집계한다. 게터들은 실패 시 직전 캐시/폴백을 반환하므로
+  // warmFailed=0이어도 일부 소스는 폴백일 수 있다(상세 신선도는 각 페이지 updatedAt로 확인).
   return NextResponse.json({ ok: warmFailed === 0, ...result }, { status: warmFailed === 0 ? 200 : 207 });
 }

@@ -13,6 +13,7 @@ function changeColor(n: number | null): string {
 
 export default function TickerTable() {
   const [snapshot, setSnapshot] = useState<TickerSnapshot | null>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -20,11 +21,14 @@ export default function TickerTable() {
       if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
       try {
         const res = await fetch("/api/ticker");
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("non-ok");
         const data = (await res.json()) as TickerSnapshot;
-        if (alive) setSnapshot(data);
+        if (alive) {
+          setSnapshot(data);
+          setError(false);
+        }
       } catch {
-        // 다음 폴링에서 복구
+        if (alive) setError(true); // 재시도 버튼 표시
       }
     };
     load();
@@ -58,7 +62,29 @@ export default function TickerTable() {
           </tr>
         </thead>
         <tbody>
-          {snapshot == null ? (
+          {error ? (
+            <tr>
+              <td colSpan={4} className="px-4 py-6 text-center">
+                <span className="text-xs text-ink-500">시세를 불러오지 못했어요</span>
+                <button
+                  onClick={() => {
+                    setError(false);
+                    void fetch("/api/ticker")
+                      .then(async (res) => {
+                        if (!res.ok) throw new Error("non-ok");
+                        const data = (await res.json()) as TickerSnapshot;
+                        setSnapshot(data);
+                        setError(false);
+                      })
+                      .catch(() => setError(true));
+                  }}
+                  className="ml-2 rounded bg-navy-900 px-2 py-0.5 text-[11px] text-white hover:bg-navy-700"
+                >
+                  다시 시도
+                </button>
+              </td>
+            </tr>
+          ) : snapshot == null ? (
             <tr>
               <td colSpan={4} className="px-4 py-6 text-center text-ink-500">
                 시세 불러오는 중...

@@ -1,10 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { kstDay } from "@/lib/time";
 
-// KST(UTC+9) 기준 날짜 문자열 "YYYY-MM-DD"
-export function kstDay(d: Date = new Date()): string {
-  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-  return kst.toISOString().slice(0, 10);
-}
+// track 라우트 등 기존 import 경로 호환을 위해 재노출 (정의는 lib/time.ts로 통합)
+export { kstDay };
 
 // 오늘(KST) 접속자 +1 — day 행이 없으면 생성
 export async function recordVisit(): Promise<void> {

@@ -1,4 +1,5 @@
 import { cachedJson } from "@/lib/cache";
+import { fetchJson } from "@/lib/http";
 
 export type Ticker = {
   symbol: string;
@@ -27,23 +28,15 @@ const COINS = [
   { symbol: "TRX", name: "트론", upbit: "KRW-TRX", binance: "TRXUSDT" },
 ];
 
-// 캐시 TTL은 크론 주기(60초)에 맞춰 정렬 — prod에선 크론이 미리 갱신하므로
-// 요청 시점 외부 호출이 거의 발생하지 않는다(만료 시에만 inline 폴백).
+// 캐시 TTL. 무료플랜 Vercel Cron은 하루 1회뿐이라, 실제로는 만료 후 첫 방문자 요청 때
+// inline 갱신되는 stale-while-revalidate가 주 경로다. 동시 요청의 외부 호출 폭주는
+// cache.ts의 inflight 합치기로 막는다.
 const TTL_MS = 60_000;
-const FX_TTL_MS = 10 * 60_000;
+const FX_TTL_MS = 15 * 60_000;
+const FX_STALE_CEILING_MS = 6 * 3600_000; // 6시간 넘은 환율은 신뢰 불가 → fallback으로 강등
 const FALLBACK_USD_KRW = 1380;
 
 let fxCache: { rate: number; at: number } | null = null;
-
-async function fetchJson<T>(url: string, timeoutMs = 5000): Promise<T> {
-  const res = await fetch(url, {
-    signal: AbortSignal.timeout(timeoutMs),
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error(`${url} -> ${res.status}`);
-  return res.json() as Promise<T>;
-}
 
 async function fetchUsdKrw(): Promise<{ rate: number; source: FxSource }> {
   if (fxCache && Date.now() - fxCache.at < FX_TTL_MS) {
@@ -61,8 +54,11 @@ async function fetchUsdKrw(): Promise<{ rate: number; source: FxSource }> {
   } catch {
     // 환율 API 실패 시 직전 캐시 → 고정 환율 순서로 폴백
   }
-  // 직전 캐시가 있으면 사용, 없으면 고정환율(추정) — 출처를 명시해 가짜 신호 방지
-  if (fxCache) return { rate: fxCache.rate, source: "cached" };
+  // 직전 캐시가 6시간 이내면 사용, 그보다 오래됐으면 고정환율(추정)로 강등.
+  // 출처를 명시(cached/fallback)해 김프가 추정 환율로 계산됐는지 UI가 구분하게 한다.
+  if (fxCache && Date.now() - fxCache.at < FX_STALE_CEILING_MS) {
+    return { rate: fxCache.rate, source: "cached" };
+  }
   return { rate: FALLBACK_USD_KRW, source: "fallback" };
 }
 

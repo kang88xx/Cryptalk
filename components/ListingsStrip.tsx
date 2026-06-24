@@ -15,7 +15,9 @@ function kstDateTime(iso: string): string {
 // 거래소 브랜드 색 (뱃지)
 const EX_COLOR: Record<Exchange, string> = {
   Binance: "#b07d00", // amber
+  Upbit: "#093687", // upbit navy
   Bithumb: "#f37321", // bithumb orange
+  Bybit: "#c99400", // bybit gold
   Coinbase: "#1652f0", // coinbase blue
   Robinhood: "#069c1f", // robinhood green
 };

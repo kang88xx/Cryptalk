@@ -38,8 +38,9 @@ function CardHead({ title, meta }: { title: string; meta: string }) {
 export default async function MarketCards() {
   const [overview, domHistory, snapshot, fxHistory, exchanges] = await Promise.all([
     getMarketOverview(),
+    // 스파크라인용 스냅샷 — 15분 간격 96포인트 ≈ 24시간분. 14일(336)에서 줄임.
     prisma.marketSnapshot
-      .findMany({ orderBy: { createdAt: "desc" }, take: 336 })
+      .findMany({ orderBy: { createdAt: "desc" }, take: 96 })
       .then((rows) => rows.reverse()),
     getTickers(),
     getFxHistory(),

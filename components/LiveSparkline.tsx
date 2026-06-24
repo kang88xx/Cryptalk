@@ -21,10 +21,20 @@ export default function LiveSparkline({
   const [open, setOpen] = useState(false); // 하이드레이션 안전: 초기엔 정적
 
   useEffect(() => {
-    const update = () => setOpen(isMarketOpen(market));
+    const update = () => {
+      if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
+      setOpen(isMarketOpen(market));
+    };
     update();
     const id = setInterval(update, 30_000);
-    return () => clearInterval(id);
+    const onVisible = () => {
+      if (!document.hidden) update();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [market]);
 
   return <Sparkline values={values} width={width} height={height} stroke={stroke} pulse={open} />;

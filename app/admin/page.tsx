@@ -1,68 +1,92 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/actions";
-import { todayVisits, recentVisits, kstDay } from "@/lib/visits";
+import { getAdminStats, getDailySeries } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
+// 권한 게이트는 app/admin/layout.tsx에서 일원화.
 export default async function AdminHomePage() {
-  if (!(await isAdmin())) redirect("/");
+  const [stats, daily] = await Promise.all([getAdminStats(), getDailySeries(14)]);
 
-  const today = kstDay();
-  const [todayCount, recent] = await Promise.all([todayVisits(), recentVisits(7)]);
-  const maxCount = Math.max(1, ...recent.map((r) => r.count));
+  const cumulative = [
+    { label: "총 회원", value: stats.totalUsers },
+    { label: "총 게시글", value: stats.totalPosts },
+    { label: "총 댓글", value: stats.totalComments },
+    { label: "박스 오픈", value: stats.totalBoxOpens },
+    { label: "당첨 건수", value: stats.totalPrizeWins },
+    { label: "유통 포인트", value: stats.circulatingPoints },
+  ];
+  const today = [
+    { label: "오늘 방문", value: stats.todayVisitors },
+    { label: "오늘 가입", value: stats.todaySignups },
+    { label: "오늘 글", value: stats.todayPosts },
+    { label: "오늘 댓글", value: stats.todayComments },
+  ];
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <p className="eyebrow">Admin</p>
+    <div>
       <h1 className="mb-4 text-lg font-semibold text-navy-900">대시보드</h1>
 
-      {/* 금일 총 접속자 */}
-      <section className="mb-6 border border-line bg-white">
+      {/* 누적 */}
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">누적</h2>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {cumulative.map((c) => (
+          <div key={c.label} className="border border-line bg-white px-4 py-3">
+            <p className="text-[11px] text-ink-500">{c.label}</p>
+            <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-navy-900">
+              {c.value.toLocaleString()}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* 금일 */}
+      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
+        금일 (KST {daily[0]?.day})
+      </h2>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {today.map((c) => (
+          <div key={c.label} className="border border-line bg-white px-4 py-3">
+            <p className="text-[11px] text-ink-500">{c.label}</p>
+            <p className="mt-1 font-mono text-2xl font-semibold tracking-tight text-navy-900">
+              {c.value.toLocaleString()}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* 데일리 DB */}
+      <section className="border border-line bg-white">
         <header className="border-b border-line px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-navy-900">금일 총 접속자</h2>
+          <h2 className="text-sm font-semibold text-navy-900">최근 14일 일자별 집계</h2>
         </header>
-        <div className="px-4 py-6">
-          <p className="font-mono text-4xl font-semibold tracking-tight text-navy-900">
-            {todayCount.toLocaleString()}
-            <span className="ml-2 align-middle text-sm font-normal text-ink-500">명 (KST {today})</span>
-          </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-navy-900 text-xs font-light text-white">
+                <th className="px-3 py-2 text-left font-normal">날짜 (KST)</th>
+                <th className="px-3 py-2 text-right font-normal">방문</th>
+                <th className="px-3 py-2 text-right font-normal">가입</th>
+                <th className="px-3 py-2 text-right font-normal">글</th>
+                <th className="px-3 py-2 text-right font-normal">댓글</th>
+                <th className="px-3 py-2 text-right font-normal">박스</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily.map((d) => (
+                <tr key={d.day} className="border-b border-line last:border-0 hover:bg-paper">
+                  <td className="px-3 py-2 font-mono text-xs text-ink-500">{d.day}</td>
+                  <td className="px-3 py-2 text-right font-mono font-semibold text-navy-900">
+                    {d.visitors.toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2 text-right font-mono text-ink-900">{d.signups}</td>
+                  <td className="px-3 py-2 text-right font-mono text-ink-900">{d.posts}</td>
+                  <td className="px-3 py-2 text-right font-mono text-ink-900">{d.comments}</td>
+                  <td className="px-3 py-2 text-right font-mono text-ink-900">{d.boxOpens}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
-
-      {/* 최근 7일 추이 */}
-      <section className="mb-6 border border-line bg-white">
-        <header className="border-b border-line px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-navy-900">최근 7일 접속자</h2>
-        </header>
-        {recent.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-ink-500">아직 집계된 접속 기록이 없습니다.</p>
-        ) : (
-          <ul className="divide-y divide-line">
-            {recent.map((r) => (
-              <li key={r.day} className="flex items-center gap-3 px-4 py-2.5">
-                <span className="w-24 shrink-0 font-mono text-xs text-ink-500">{r.day}</span>
-                <span className="relative h-4 flex-1 overflow-hidden bg-paper2">
-                  <span
-                    className="absolute inset-y-0 left-0 bg-navy-700"
-                    style={{ width: `${(r.count / maxCount) * 100}%` }}
-                  />
-                </span>
-                <span className="w-16 shrink-0 text-right font-mono text-sm font-semibold text-navy-900">
-                  {r.count.toLocaleString()}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <Link
-        href="/admin/prizes"
-        className="inline-block border border-navy-300 px-4 py-2 text-sm font-medium text-navy-700 hover:border-navy-900 hover:text-navy-900"
-      >
-        랜덤박스 상품 관리 →
-      </Link>
     </div>
   );
 }

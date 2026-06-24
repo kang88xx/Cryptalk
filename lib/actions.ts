@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BOX_COST, RARITIES, type Rarity } from "@/lib/box";
+import { kstDay, kstDayStartUtc } from "@/lib/time";
 
 const POINTS = { post: 5, comment: 2, attendance: 10 };
 
@@ -12,16 +13,6 @@ async function requireUserId(): Promise<string> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   return session.user.id;
-}
-
-function kstToday(): string {
-  return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
-}
-
-// KST 자정의 UTC 시각
-function kstDayStartUtc(): Date {
-  const kn = new Date(Date.now() + 9 * 3600_000);
-  return new Date(Date.UTC(kn.getUTCFullYear(), kn.getUTCMonth(), kn.getUTCDate()) - 9 * 3600_000);
 }
 
 // 글/댓글 포인트 일일 적립 횟수 상한 (포인트 파밍 방지 — 작성 자체는 막지 않음)
@@ -102,10 +93,25 @@ export async function createPost(formData: FormData) {
   redirect(`${basePath}/${post.id}`);
 }
 
+// 게시글이 속한 보드의 기본 경로(/free · /analysis · /forum/<slug>). 없는 글이면 null.
+// 댓글/투표 후 올바른 페이지를 재검증하기 위해 사용 (글은 free 외 보드에도 존재).
+async function postBasePath(postId: number): Promise<string | null> {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { board: { select: { slug: true, type: true } } },
+  });
+  if (!post) return null;
+  return post.board.type === "forum" ? `/forum/${post.board.slug}` : `/${post.board.slug}`;
+}
+
 export async function createComment(postId: number, formData: FormData) {
   const userId = await requireUserId();
   const content = String(formData.get("content") ?? "").trim();
   if (!content || content.length > 2000) throw new Error("댓글 내용을 입력해 주세요.");
+
+  // 존재 확인 + 실제 보드 경로 확보 (없는 글이면 raw Prisma 오류 대신 친화적 메시지)
+  const basePath = await postBasePath(postId);
+  if (!basePath) throw new Error("게시글을 찾을 수 없습니다.");
 
   await prisma.$transaction([
     prisma.comment.create({ data: { postId, userId, content } }),
@@ -116,7 +122,7 @@ export async function createComment(postId: number, formData: FormData) {
   ]);
   if (await underDailyPointCap(userId, "comment")) await awardPoints(userId, "comment", POINTS.comment);
 
-  revalidatePath(`/free/${postId}`);
+  revalidatePath(`${basePath}/${postId}`);
 }
 
 // 코인·주식·해외 종목 자유 입력 (티커에 있는 심볼은 현재가 자동 평가)
@@ -157,7 +163,7 @@ export async function deletePortfolioItem(id: number) {
 
 export async function checkAttendance() {
   const userId = await requireUserId();
-  const day = kstToday();
+  const day = kstDay();
   const ok = await awardPoints(userId, "attendance", POINTS.attendance, day);
   revalidatePath("/attendance");
   return ok
@@ -167,6 +173,9 @@ export async function checkAttendance() {
 
 export async function votePost(postId: number, value: 1 | -1) {
   const userId = await requireUserId();
+
+  const basePath = await postBasePath(postId);
+  if (!basePath) return { ok: false as const, message: "게시글을 찾을 수 없습니다." };
 
   const existing = await prisma.vote.findUnique({
     where: { postId_userId: { postId, userId } },
@@ -191,7 +200,7 @@ export async function votePost(postId: number, value: 1 | -1) {
     throw e;
   }
 
-  revalidatePath(`/free/${postId}`);
+  revalidatePath(`${basePath}/${postId}`);
   return { ok: true as const, message: value === 1 ? "추천했습니다." : "비추천했습니다." };
 }
 
@@ -223,7 +232,7 @@ export async function isAdmin(): Promise<boolean> {
 }
 
 // 업데이트 버튼 — 시세 캐시를 비우고 강제로 새 데이터를 받아오게 한 뒤 전체 재검증.
-// (무거운 스크랩 listings-v3·bubbles는 제외 — 해당 페이지에서만 필요)
+// (무거운 스크랩 listings·bubbles는 제외 — 해당 페이지에서만 필요)
 const MARKET_CACHE_KEYS = [
   "marketbar",
   "tickers",
@@ -288,6 +297,7 @@ export async function openRandomBox(): Promise<BoxResult> {
     }
   }
 
+  let newPoints = me.points - BOX_COST; // 트랜잭션에서 실제 잔액으로 덮어씀
   try {
     await prisma.$transaction(async (tx) => {
       // 포인트 차감 — 잔액 가드(동시 오픈 시 음수 방지)
@@ -308,6 +318,8 @@ export async function openRandomBox(): Promise<BoxResult> {
 
       await tx.prizeWin.create({ data: { userId, prizeId: picked.id, cost: BOX_COST } });
       await tx.pointLog.create({ data: { userId, action: "box", delta: -BOX_COST } });
+      const fresh = await tx.user.findUnique({ where: { id: userId }, select: { points: true } });
+      if (fresh) newPoints = fresh.points;
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
@@ -319,7 +331,7 @@ export async function openRandomBox(): Promise<BoxResult> {
   revalidatePath("/box");
   return {
     ok: true,
-    points: me.points - BOX_COST,
+    points: newPoints,
     prize: {
       id: picked.id,
       name: picked.name,

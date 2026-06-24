@@ -4,8 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit, clientIp } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
-  // IP당 가입 남용 방지 — 1시간 5회
-  if (!(await checkRateLimit(`register:${clientIp(req)}`, 5, 60 * 60_000))) {
+  // IP당 가입 남용 방지 — 1시간 5회. 저장소 장애 시 fail-closed(우회 차단).
+  if (!(await checkRateLimit(`register:${clientIp(req)}`, 5, 60 * 60_000, true))) {
     return NextResponse.json(
       { error: "가입 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요." },
       { status: 429 }
@@ -31,6 +31,10 @@ export async function POST(req: Request) {
   }
   if (!password || password.length < 8) {
     return NextResponse.json({ error: "비밀번호는 8자 이상이어야 합니다." }, { status: 400 });
+  }
+  // bcrypt는 72바이트 초과분을 조용히 버린다 — 그 전에 거부해 엔트로피 손실/혼동 방지
+  if (Buffer.byteLength(password, "utf8") > 72) {
+    return NextResponse.json({ error: "비밀번호가 너무 깁니다. (72바이트 이하)" }, { status: 400 });
   }
 
   const dup = await prisma.user.findFirst({
