@@ -159,7 +159,7 @@ export default async function MarketCards() {
                 height={12}
                 className="inline-block rounded-full"
               />
-              CoinGecko · 환율 ECB · 테더 업비트
+              CoinGecko · 환율 Yahoo · 테더 업비트
             </>
           )}
         </p>

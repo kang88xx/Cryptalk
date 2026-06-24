@@ -38,21 +38,51 @@ const FALLBACK_USD_KRW = 1380;
 
 let fxCache: { rate: number; at: number } | null = null;
 
-async function fetchUsdKrw(): Promise<{ rate: number; source: FxSource }> {
-  if (fxCache && Date.now() - fxCache.at < FX_TTL_MS) {
-    return { rate: fxCache.rate, source: "cached" };
+// Yahoo(KRW=X) 장중 실시간가 — meta.regularMarketPrice. Yahoo는 UA를 요구하므로
+// 공용 fetchJson(UA 없음) 대신 직접 fetch 한다.
+async function fetchYahooUsdKrw(): Promise<number | null> {
+  try {
+    const res = await fetch(
+      "https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=1d&range=1d",
+      {
+        signal: AbortSignal.timeout(6000),
+        cache: "no-store",
+        headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+      }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      chart?: { result?: { meta?: { regularMarketPrice?: number } }[] };
+    };
+    const rate = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return typeof rate === "number" && rate > 0 ? rate : null;
+  } catch {
+    return null;
   }
+}
+
+// ECB(Frankfurter) 고시환율 — 하루 1회 발표라 장중엔 정체. Yahoo 실패 시 폴백으로만 사용.
+async function fetchEcbUsdKrw(): Promise<number | null> {
   try {
     const data = await fetchJson<{ rates: { KRW: number } }>(
       "https://api.frankfurter.dev/v1/latest?base=USD&symbols=KRW"
     );
     const rate = data.rates?.KRW;
-    if (rate && rate > 0) {
-      fxCache = { rate, at: Date.now() };
-      return { rate, source: "live" };
-    }
+    return rate && rate > 0 ? rate : null;
   } catch {
-    // 환율 API 실패 시 직전 캐시 → 고정 환율 순서로 폴백
+    return null;
+  }
+}
+
+async function fetchUsdKrw(): Promise<{ rate: number; source: FxSource }> {
+  if (fxCache && Date.now() - fxCache.at < FX_TTL_MS) {
+    return { rate: fxCache.rate, source: "cached" };
+  }
+  // 김프·체감 환율엔 실시간 시장가가 맞다 → Yahoo 우선, 실패 시 ECB 고시환율로 폴백.
+  const rate = (await fetchYahooUsdKrw()) ?? (await fetchEcbUsdKrw());
+  if (rate && rate > 0) {
+    fxCache = { rate, at: Date.now() };
+    return { rate, source: "live" };
   }
   // 직전 캐시가 6시간 이내면 사용, 그보다 오래됐으면 고정환율(추정)로 강등.
   // 출처를 명시(cached/fallback)해 김프가 추정 환율로 계산됐는지 UI가 구분하게 한다.

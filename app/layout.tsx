@@ -45,7 +45,7 @@ export default function RootLayout({
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-1 px-4 py-6">
             <p className="rail">Cryptalk · Crypto Community</p>
             <p className="text-xs text-ink-500">
-              시세 출처: 업비트 · 바이낸스 · Frankfurter(환율) — 투자 판단의 책임은 본인에게 있습니다.
+              시세 출처: 업비트 · 바이낸스 · Yahoo(환율) — 투자 판단의 책임은 본인에게 있습니다.
             </p>
           </div>
         </footer>
