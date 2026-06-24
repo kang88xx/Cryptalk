@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import InAppBrowserNotice from "@/components/InAppBrowserNotice";
 
 // 오픈리다이렉트/javascript:/백슬래시 우회 차단 — 동일 출처 경로만 허용
 function safeCallback(raw: string | null): string {
@@ -47,6 +48,7 @@ function LoginForm() {
   return (
     <div className="mx-auto mt-10 w-full max-w-sm border border-line bg-white p-6">
       <h1 className="mb-5 text-center text-lg font-semibold text-navy-900">로그인</h1>
+      <InAppBrowserNotice />
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <input
           name="email"

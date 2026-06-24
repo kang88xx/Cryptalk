@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import InAppBrowserNotice from "@/components/InAppBrowserNotice";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto mt-10 w-full max-w-sm border border-line bg-white p-6">
       <h1 className="mb-5 text-center text-lg font-semibold text-navy-900">회원가입</h1>
+      <InAppBrowserNotice />
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         <input
           name="email"
