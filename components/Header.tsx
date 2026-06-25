@@ -10,6 +10,7 @@ const NAV = [
   ["/", "홈"],
   ["/dashboard", "대시보드"],
   ["/free", "자유게시판"],
+  ["/chat", "실시간 채팅"],
   ["/analysis", "시장분석"],
   ["/calendar", "캘린더"],
   ["/box", "랜덤박스"],
@@ -22,7 +23,7 @@ export default async function Header() {
   const me = session?.user?.id
     ? await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { points: true, level: true },
+        select: { points: true, level: true, nickname: true, nicknameConfirmed: true },
       })
     : null;
 
@@ -73,9 +74,17 @@ export default async function Header() {
               <Link href="/box" className="font-mono text-xs font-semibold text-navy-700 hover:text-navy-900">
                 {(me?.points ?? 0).toLocaleString()}P
               </Link>
-              <span className="text-ink-500">
-                <b className="font-semibold text-navy-900">{session.user.name}</b> 님
-              </span>
+              {me && !me.nicknameConfirmed && (
+                <Link
+                  href="/settings"
+                  className="border border-amber-500 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-100"
+                >
+                  닉네임 설정
+                </Link>
+              )}
+              <Link href="/settings" className="text-ink-500 hover:text-navy-900" title="내 설정">
+                <b className="font-semibold text-navy-900">{me?.nickname ?? session.user.name}</b> 님
+              </Link>
               <form action={logout}>
                 <button className="border border-navy-300 px-3 py-1 text-ink-500 hover:border-navy-900 hover:text-navy-900">
                   로그아웃

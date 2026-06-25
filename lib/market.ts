@@ -195,25 +195,51 @@ type CGMarket = {
 
 const BUBBLES_TTL_MS = 5 * 60_000; // /global 과 동일 톤(분 단위) — 시총 랭킹은 초단위 갱신 불필요
 
-// 스테이블코인 — 버블맵에서 제외(시세 변동이 거의 없어 의미 없음)
+// 스테이블코인 폴백 목록 — CoinGecko 카테고리 조회 실패 시에만 사용(아래 동적 목록이 1차).
 const BUBBLE_STABLES = new Set([
   "USDT", "USDC", "DAI", "TUSD", "USDS", "FDUSD", "USDE", "PYUSD", "BUSD",
   "GUSD", "USDD", "FRAX", "LUSD", "USDP", "EURT", "EURC", "USD1", "USDF",
   "USDX", "USD0", "USDB", "USDG", "RLUSD", "BUIDL", "USDY", "USTC",
 ]);
 
-async function fetchBubbles(): Promise<BubbleSnapshot> {
-  // 스테이블 제외 후에도 100개가 남도록 넉넉히(150개) 받아온다
+const STABLE_TTL_MS = 6 * 3600_000; // 스테이블 '분류'는 자주 안 바뀜 — 6시간 캐시
+
+// CoinGecko "stablecoins" 카테고리 → 스테이블로 분류된 심볼 목록(동적).
+// 하드코딩 목록이 놓치는 신규 스테이블코인(USDtb·EURS 등)까지 거른다.
+// 빈/실패 시 throw → cachedJson 이 직전 정상값을 보존.
+async function fetchStableSymbols(): Promise<string[]> {
   const url =
     "https://api.coingecko.com/api/v3/coins/markets" +
-    "?vs_currency=usd&order=market_cap_desc&per_page=150&page=1" +
+    "?vs_currency=usd&category=stablecoins&order=market_cap_desc&per_page=250&page=1&sparkline=false";
+  const rows = await fetchJson<{ symbol: string }[]>(url, 8000);
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error("coingecko stablecoins empty");
+  return rows.map((r) => r.symbol.toUpperCase());
+}
+
+// 동적 스테이블 분류 + 하드코딩 폴백을 합친 제외 집합. 카테고리 조회 실패 시 폴백만 사용.
+async function getStableSet(): Promise<Set<string>> {
+  try {
+    const syms = await cachedJson("bubble-stables", STABLE_TTL_MS, fetchStableSymbols);
+    return new Set<string>([...BUBBLE_STABLES, ...syms]);
+  } catch {
+    return BUBBLE_STABLES;
+  }
+}
+
+async function fetchBubbles(): Promise<BubbleSnapshot> {
+  // 스테이블로 '분류'된 코인 집합(동적) — 신규 스테이블코인까지 제외
+  const stables = await getStableSet();
+  // 스테이블 제외 후에도 100개가 남도록 넉넉히(250개) 받아온다
+  const url =
+    "https://api.coingecko.com/api/v3/coins/markets" +
+    "?vs_currency=usd&order=market_cap_desc&per_page=250&page=1" +
     "&sparkline=false&price_change_percentage=1h%2C24h%2C7d%2C30d%2C1y";
   // 빈 배열이면 throw → cachedJson 이 캐시의 직전 정상값을 보존(빈 데이터로 안 덮음)
   const rows = await fetchJson<CGMarket[]>(url, 8000);
   if (!Array.isArray(rows) || rows.length === 0) throw new Error("coingecko markets empty");
 
   const coins: BubbleCoin[] = rows
-    .filter((r) => !BUBBLE_STABLES.has(r.symbol.toUpperCase()))
+    .filter((r) => !stables.has(r.symbol.toUpperCase()))
     .slice(0, 100)
     .map((r) => ({
     id: r.id,
@@ -236,7 +262,8 @@ async function fetchBubbles(): Promise<BubbleSnapshot> {
 
 export async function getBubbles(): Promise<BubbleSnapshot> {
   try {
-    return await cachedJson("bubbles", BUBBLES_TTL_MS, fetchBubbles);
+    // -v2: 스테이블 동적 제외 + 수집량 250 — 옛 캐시 무시하고 즉시 새 필터로 갱신
+    return await cachedJson("bubbles-v2", BUBBLES_TTL_MS, fetchBubbles);
   } catch {
     return { coins: [], updatedAt: new Date(0).toISOString() };
   }

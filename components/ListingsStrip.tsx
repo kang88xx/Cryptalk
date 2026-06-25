@@ -1,4 +1,14 @@
-import { getTodayListings, type Exchange } from "@/lib/listings";
+import { getTodayListings, type Exchange, type Listing } from "@/lib/listings";
+
+// 영문 피드 설명 → 국문 상장 유형 표기 (거래소명은 뱃지에 별도 노출)
+function koDetail(l: Listing): string {
+  const t = `${l.detail} ${l.text}`.toLowerCase();
+  if (/roadmap/.test(t)) return "로드맵 추가";
+  if (/futures|perpetual|perp\b/.test(t)) return "선물 상장";
+  if (/spot/.test(t)) return "현물 상장";
+  if (/delist/.test(t)) return "상장 폐지";
+  return "상장 예정";
+}
 
 // HH:mm (KST)
 function kstTime(iso: string): string {
@@ -20,6 +30,7 @@ const EX_COLOR: Record<Exchange, string> = {
   Bybit: "#c99400", // bybit gold
   Coinbase: "#1652f0", // coinbase blue
   Robinhood: "#069c1f", // robinhood green
+  OKX: "#1a1a1a", // okx black
 };
 
 const DAY_MS = 24 * 3600_000;
@@ -42,14 +53,14 @@ export default async function ListingsStrip() {
     <section className="border border-line bg-white">
       <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-semibold text-white">오늘 신규 상장 예정</h2>
-          <span className="text-xs text-navy-100">{listings.length}건 · 상장 예정(KST)</span>
+          <h2 className="text-sm font-semibold text-white">신규 상장·상폐 정보</h2>
+          <span className="text-xs text-navy-100">{listings.length}건 · 예정 시각(KST)</span>
         </div>
       </header>
 
       {listings.length === 0 ? (
         <p className="px-4 py-6 text-center text-xs text-ink-500">
-          오늘 신규 상장 예정 소식이 아직 없습니다.
+          오늘 신규 상장·상폐 소식이 아직 없습니다.
         </p>
       ) : (
         <ul className="flex flex-wrap gap-x-3 gap-y-2 px-4 py-3">
@@ -74,7 +85,7 @@ export default async function ListingsStrip() {
                   </span>
                 )}
                 <span className={`truncate ${imminent ? "text-red-700" : "text-ink-700"}`}>
-                  {l.detail}
+                  {koDetail(l)}
                 </span>
                 {l.scheduledAt ? (
                   <span

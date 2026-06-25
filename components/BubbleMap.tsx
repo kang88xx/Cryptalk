@@ -244,8 +244,8 @@ export default function BubbleMap() {
                 />
                 {n.r > 16 &&
                   (() => {
-                    const lr = n.r * 0.42; // 로고 반지름 (버블 대비 적당한 비율)
-                    const lcy = -n.r * 0.2; // 로고 중심 y (심볼 텍스트 위)
+                    const lr = n.r * 0.36; // 로고 반지름 (텍스트와 겹치지 않게 축소)
+                    const lcy = -n.r * 0.25; // 로고 중심 y — 심볼 텍스트와 간격 30% 좁힘
                     const clipId = `logo-clip-${n.coin.id}`;
                     return (
                       <>
@@ -277,8 +277,8 @@ export default function BubbleMap() {
                   })()}
                 <text
                   textAnchor="middle"
-                  y={n.r > 16 ? n.r * 0.42 : 3}
-                  fontSize={Math.max(7, n.r * 0.3)}
+                  y={n.r > 16 ? n.r * 0.46 : 3}
+                  fontSize={Math.max(7, n.r * 0.28)}
                   fontWeight={700}
                   fill={colorFor(n.change)}
                   style={{ pointerEvents: "none", userSelect: "none" }}
@@ -288,8 +288,8 @@ export default function BubbleMap() {
                 {n.r > 26 && (
                   <text
                     textAnchor="middle"
-                    y={n.r * 0.74}
-                    fontSize={Math.max(6, n.r * 0.22)}
+                    y={n.r * 0.73}
+                    fontSize={Math.max(6, n.r * 0.2)}
                     fill={colorFor(n.change)}
                     style={{ pointerEvents: "none", userSelect: "none" }}
                   >

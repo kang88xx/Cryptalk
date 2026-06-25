@@ -60,7 +60,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         let dbUser = await prisma.user.findUnique({ where: { email } });
         if (!dbUser) {
           const nickname = await uniqueNickname(user.name ?? email.split("@")[0]);
-          dbUser = await prisma.user.create({ data: { email, nickname } });
+          // 자동 생성 닉 — 미확정 상태로 두어 최초 1회 본인 닉 설정을 무료로 허용
+          dbUser = await prisma.user.create({ data: { email, nickname, nicknameConfirmed: false } });
         }
         // JWT에 우리 DB의 사용자 ID/닉네임을 싣는다
         user.id = dbUser.id;

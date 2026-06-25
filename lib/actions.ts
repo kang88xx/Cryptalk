@@ -209,6 +209,77 @@ export async function logout() {
   await signOut({ redirectTo: "/" });
 }
 
+/* ───────────────────────── 닉네임 설정/변경 ───────────────────────── */
+
+// 가입 후 닉네임 변경 가능 횟수 (미확정 사용자의 최초 1회 설정은 횟수에서 제외)
+export const NICK_MAX_CHANGES = 3;
+
+export type NicknameResult = { ok: boolean; message: string; remaining?: number };
+
+// 닉네임 설정/변경. 구글 신규(미확정)는 최초 1회 무료, 그 외엔 총 3회까지 차감.
+export async function changeNickname(formData: FormData): Promise<NicknameResult> {
+  const userId = await requireUserId();
+  const nickname = String(formData.get("nickname") ?? "").trim();
+
+  if (nickname.length < 2 || nickname.length > 12) {
+    return { ok: false, message: "닉네임은 2~12자로 입력해 주세요." };
+  }
+  if (/\s/.test(nickname)) {
+    return { ok: false, message: "닉네임에 공백은 사용할 수 없습니다." };
+  }
+
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { nickname: true, nicknameChanges: true, nicknameConfirmed: true },
+  });
+  if (!me) return { ok: false, message: "사용자를 찾을 수 없습니다." };
+
+  const isInitial = !me.nicknameConfirmed; // 미확정 → 최초 설정(무료)
+  const remainingBefore = NICK_MAX_CHANGES - me.nicknameChanges;
+
+  // 같은 닉: 미확정이면 확정 처리만, 확정이면 무변경
+  if (nickname === me.nickname) {
+    if (isInitial) {
+      await prisma.user.update({ where: { id: userId }, data: { nicknameConfirmed: true } });
+      revalidatePath("/settings");
+      revalidatePath("/", "layout");
+      return { ok: true, message: "닉네임이 설정되었습니다.", remaining: remainingBefore };
+    }
+    return { ok: false, message: "현재 닉네임과 동일합니다.", remaining: remainingBefore };
+  }
+
+  // 확정 사용자만 횟수 제한 적용
+  if (!isInitial && me.nicknameChanges >= NICK_MAX_CHANGES) {
+    return { ok: false, message: `닉네임은 최대 ${NICK_MAX_CHANGES}회까지만 변경할 수 있습니다.`, remaining: 0 };
+  }
+
+  const dup = await prisma.user.findUnique({ where: { nickname }, select: { id: true } });
+  if (dup) return { ok: false, message: "이미 사용 중인 닉네임입니다.", remaining: remainingBefore };
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        nickname,
+        nicknameConfirmed: true,
+        ...(isInitial ? {} : { nicknameChanges: { increment: 1 } }),
+      },
+    });
+  } catch {
+    // 중복 확인과 갱신 사이의 동시 변경 (유니크 제약 위반)
+    return { ok: false, message: "이미 사용 중인 닉네임입니다.", remaining: remainingBefore };
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/", "layout"); // 헤더 닉네임 즉시 갱신
+  const remaining = isInitial ? NICK_MAX_CHANGES : NICK_MAX_CHANGES - (me.nicknameChanges + 1);
+  return {
+    ok: true,
+    message: isInitial ? "닉네임이 설정되었습니다." : `닉네임을 변경했습니다. (남은 변경 ${remaining}회)`,
+    remaining,
+  };
+}
+
 /* ───────────────────────── 랜덤박스 / 어드민 상품 ───────────────────────── */
 
 // 운영진(Lv10+)만 어드민 — 별도 role 컬럼 없이 기존 레벨 관례 재사용

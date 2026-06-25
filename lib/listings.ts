@@ -1,5 +1,5 @@
 // @NewListingsFeed 텔레그램 공개 채널 → 금일 신규 상장 예정 추출
-// 대상: 바이낸스 선물 · Upbit · Bithumb · Bybit · Robinhood · Coinbase(로드맵 포함)
+// 대상: 바이낸스 선물 · Upbit · Bithumb · Bybit · Robinhood · Coinbase(로드맵 포함) · OKX
 // 봇/로그인 없이 t.me/s 웹 미리보기를 30분 간격으로 스크래핑
 
 import { lookup } from "node:dns/promises";
@@ -61,7 +61,7 @@ async function isSafePublicUrl(raw: string): Promise<boolean> {
   }
 }
 
-export type Exchange = "Binance" | "Upbit" | "Bithumb" | "Bybit" | "Robinhood" | "Coinbase";
+export type Exchange = "Binance" | "Upbit" | "Bithumb" | "Bybit" | "Robinhood" | "Coinbase" | "OKX";
 
 export type Listing = {
   id: string; // 메시지 고유 (t.me 링크 끝 번호)
@@ -89,6 +89,7 @@ function classifyExchange(text: string): Exchange | null {
   if (/bybit/i.test(text)) return "Bybit";
   if (/robinhood/i.test(text)) return "Robinhood";
   if (/coinbase/i.test(text)) return "Coinbase"; // 상장 + 로드맵(roadmap) 포함
+  if (/okx/i.test(text)) return "OKX"; // OKX 현물·선물 상장
   return null;
 }
 
@@ -217,6 +218,7 @@ const ALLOWED_FETCH_HOSTS = [
   /(^|\.)bybit\.com$/i,
   /(^|\.)coinbase\.com$/i,
   /(^|\.)robinhood\.com$/i,
+  /(^|\.)okx\.com$/i,
 ];
 function isAllowedFetchHost(hostname: string): boolean {
   return ALLOWED_FETCH_HOSTS.some((re) => re.test(hostname));
@@ -322,11 +324,11 @@ async function scrape(): Promise<{ listings: Listing[]; updatedAt: string }> {
   return { listings, updatedAt: new Date().toISOString() };
 }
 
-// 금일(KST) 신규 상장 예정 (바이낸스 선물·Upbit·Bithumb·Bybit·Robinhood·Coinbase) — DB 공유 캐시(30분)
+// 금일(KST) 신규 상장 예정 (바이낸스 선물·Upbit·Bithumb·Bybit·Robinhood·Coinbase·OKX) — DB 공유 캐시(30분)
 export async function getTodayListings(): Promise<{ listings: Listing[]; updatedAt: string }> {
   try {
-    // -v4: Upbit·Bybit 노출 대상 추가 — 옛 캐시 무시하고 즉시 새 분류로 갱신
-    return await cachedJson("listings-v4", TTL_MS, scrape);
+    // -v5: OKX 노출 대상 추가 — 옛 캐시 무시하고 즉시 새 분류로 갱신
+    return await cachedJson("listings-v5", TTL_MS, scrape);
   } catch {
     return { listings: [], updatedAt: new Date(0).toISOString() };
   }
