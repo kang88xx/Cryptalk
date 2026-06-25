@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "collect-logos": "node scripts/collect-logos.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

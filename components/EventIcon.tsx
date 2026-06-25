@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { COIN_LOGOS } from "@/lib/logos";
 
 // 국가/거시/특수 이벤트용 이모지 아이콘
 const EMOJI_ICON: Record<string, string> = {
@@ -32,10 +33,11 @@ function badgeColor(ticker: string): string {
   return BADGE_COLORS[hash % BADGE_COLORS.length];
 }
 
-// 코인 아이콘: 이모지 → CoinCap CDN 이미지 → 이니셜 뱃지 순서로 폴백
+// 코인/종목 아이콘: 이모지 → 수집한 로컬 로고(public/logos/coins) → 이니셜 뱃지 순서로 폴백
 export default function EventIcon({ ticker, size = 13 }: { ticker: string; size?: number }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const emoji = EMOJI_ICON[ticker.toUpperCase()];
+  const T = ticker.toUpperCase();
+  const emoji = EMOJI_ICON[T];
 
   if (emoji) {
     return (
@@ -44,15 +46,15 @@ export default function EventIcon({ ticker, size = 13 }: { ticker: string; size?
       </span>
     );
   }
-  if (!imgFailed) {
+  if (COIN_LOGOS.has(T) && !imgFailed) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={`https://assets.coincap.io/assets/icons/${ticker.toLowerCase()}@2x.png`}
+        src={`/logos/coins/${T}.png`}
         width={size}
         height={size}
         alt=""
-        className="shrink-0 rounded-full"
+        className="shrink-0 rounded-full object-contain"
         onError={() => setImgFailed(true)}
       />
     );

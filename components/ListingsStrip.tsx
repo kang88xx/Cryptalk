@@ -1,4 +1,5 @@
 import { getTodayListings, type Exchange, type Listing } from "@/lib/listings";
+import { EXCHANGE_LOGOS } from "@/lib/logos";
 
 // 영문 피드 설명 → 국문 상장 유형 표기 (거래소명은 뱃지에 별도 노출)
 function koDetail(l: Listing): string {
@@ -70,9 +71,19 @@ export default async function ListingsStrip() {
             const body = (
               <>
                 <span
-                  className="shrink-0 rounded-sm border px-1 text-[10px] font-semibold"
+                  className="flex shrink-0 items-center gap-1 rounded-sm border px-1 text-[10px] font-semibold"
                   style={{ color: exColor, borderColor: exColor }}
                 >
+                  {EXCHANGE_LOGOS.has(l.exchange) && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={`/logos/exchanges/${l.exchange}.png`}
+                      alt=""
+                      width={12}
+                      height={12}
+                      className="rounded-[2px] object-contain"
+                    />
+                  )}
                   {l.exchange}
                 </span>
                 {l.symbol && (
