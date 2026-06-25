@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { NICK_MAX_CHANGES } from "@/lib/actions";
+import { NICK_MAX_CHANGES } from "@/lib/nickname";
 import NicknameForm from "@/components/NicknameForm";
 
 export const dynamic = "force-dynamic";

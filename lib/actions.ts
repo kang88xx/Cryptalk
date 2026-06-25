@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { BOX_COST, RARITIES, type Rarity } from "@/lib/box";
 import { kstDay, kstDayStartUtc } from "@/lib/time";
+import { NICK_MAX_CHANGES, type NicknameResult } from "@/lib/nickname";
 
 const POINTS = { post: 5, comment: 2, attendance: 10 };
 
@@ -210,11 +211,6 @@ export async function logout() {
 }
 
 /* ───────────────────────── 닉네임 설정/변경 ───────────────────────── */
-
-// 가입 후 닉네임 변경 가능 횟수 (미확정 사용자의 최초 1회 설정은 횟수에서 제외)
-export const NICK_MAX_CHANGES = 3;
-
-export type NicknameResult = { ok: boolean; message: string; remaining?: number };
 
 // 닉네임 설정/변경. 구글 신규(미확정)는 최초 1회 무료, 그 외엔 총 3회까지 차감.
 export async function changeNickname(formData: FormData): Promise<NicknameResult> {
