@@ -4,7 +4,7 @@
 // 명령형 패턴 — 렌더 중 ref 읽기/동기화가 의도적이다. (검수 결과 정확성 이슈 없음)
 /* eslint-disable react-hooks/refs */
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   forceSimulation,
   forceManyBody,
@@ -50,11 +50,11 @@ type Node = {
 
 const COUNT = 100; // 시총 상위 N개(스테이블코인 제외)
 
-// Cryptalk 관례: 상승=빨강 / 하락=남보라
+// Cobak 관례: 상승=레드 / 하락=블루
 function colorFor(change: number): string {
-  if (change > 0.05) return "#dc2626"; // 상승: 빨강
-  if (change < -0.05) return "#4853c4"; // 하락: 남보라(indigo-700)
-  return "#a0a6bb"; // 보합: navy-300
+  if (change > 0.05) return "#e5443b"; // 상승: 레드(up)
+  if (change < -0.05) return "#2e7ce6"; // 하락: 블루(down)
+  return "#878e97"; // 보합: gray-500
 }
 
 export default function BubbleMap() {
@@ -83,37 +83,47 @@ export default function BubbleMap() {
     return () => ro.disconnect();
   }, []);
 
-  // 프론트는 내 API만 본다(외부 호출 X)
+  // 언마운트 후 setState 방지 플래그
+  const aliveRef = useRef(true);
   useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
-      try {
-        const res = await fetch("/api/bubbles");
-        if (!res.ok) throw new Error("non-ok");
-        const json = await res.json();
-        if (alive) {
-          if (Array.isArray(json.coins)) {
-            setCoins(json.coins.slice(0, COUNT));
-            setError(false);
-          }
-        }
-      } catch {
-        if (alive) setError(true); // 재시도 버튼 표시
-      }
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
     };
-    load();
-    const t = setInterval(load, 60_000);
+  }, []);
+
+  // 버블 데이터 로드 — 폴링·재시도 공용 (프론트는 내 API만 본다)
+  const loadBubbles = useCallback(async () => {
+    try {
+      const res = await fetch("/api/bubbles");
+      if (!res.ok) throw new Error("non-ok");
+      const json = await res.json();
+      if (!aliveRef.current) return;
+      if (Array.isArray(json.coins)) {
+        setCoins(json.coins.slice(0, COUNT));
+        setError(false);
+      }
+    } catch {
+      if (aliveRef.current) setError(true); // 재시도 버튼 표시
+    }
+  }, []);
+
+  useEffect(() => {
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) return; // 백그라운드 탭은 폴링 정지
+      loadBubbles();
+    };
+    tick();
+    const t = setInterval(tick, 60_000);
     const onVisible = () => {
-      if (!document.hidden) load();
+      if (!document.hidden) loadBubbles();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
-      alive = false;
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [loadBubbles]);
 
   const field = useMemo(
     () => PERIODS.find((p) => p.key === period)!.field,
@@ -314,16 +324,7 @@ export default function BubbleMap() {
             <button
               onClick={() => {
                 setError(false);
-                void fetch("/api/bubbles")
-                  .then(async (res) => {
-                    if (!res.ok) throw new Error("non-ok");
-                    const json = await res.json();
-                    if (Array.isArray(json.coins)) {
-                      setCoins(json.coins.slice(0, COUNT));
-                      setError(false);
-                    }
-                  })
-                  .catch(() => setError(true));
+                void loadBubbles();
               }}
               className="rounded bg-navy-900 px-3 py-1 text-[11px] text-white hover:bg-navy-700"
             >
@@ -333,7 +334,14 @@ export default function BubbleMap() {
         )}
 
         {hovered && (
-          <div className="pointer-events-none absolute left-1.5 top-1.5 rounded bg-navy-950/90 px-2 py-1.5 text-[11px] text-white">
+          <div
+            className="pointer-events-none absolute z-10 rounded-lg bg-navy-950/90 px-2 py-1.5 text-[11px] text-white shadow-pop"
+            style={{
+              // 호버한 버블 근처에 띄우되 컨테이너 밖으로 안 나가게 클램핑
+              left: Math.min(Math.max(6, hovered.x + 14), Math.max(6, W - 150)),
+              top: Math.min(Math.max(6, hovered.y + 14), Math.max(6, H - 74)),
+            }}
+          >
             <div className="font-semibold">
               {hovered.coin.name} ({hovered.coin.symbol})
             </div>

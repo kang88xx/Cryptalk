@@ -56,10 +56,10 @@ const GROUP_COLORS: Record<string, GroupStyle> = {
     chip: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
   },
   매크로: {
-    solid: "bg-amber-500 text-navy-950",
-    text: "text-amber-700",
-    dot: "bg-amber-500",
-    chip: "border-amber-500/50 bg-amber-300/30 text-amber-700",
+    solid: "bg-warn text-white",
+    text: "text-warn",
+    dot: "bg-warn",
+    chip: "border-warn/40 bg-warn/10 text-warn",
   },
   이벤트: {
     solid: "bg-rose-500 text-white",
@@ -454,7 +454,7 @@ export default function CryptoCalendar({
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full max-w-md border border-line bg-white p-6"
+            className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl border border-line bg-white p-6 shadow-pop"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center gap-2">

@@ -45,15 +45,15 @@ export default async function UpcomingEvents() {
   }
 
   return (
-    <section className="border border-line bg-white">
-      <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
+    <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+      <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-semibold text-white">다가오는 일정</h2>
-          <span className="hidden text-[11px] font-medium tracking-[0.12em] text-navy-300 uppercase sm:inline">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />다가오는 일정</h2>
+          <span className="hidden text-[11px] font-medium tracking-[0.12em] text-ink-500 uppercase sm:inline">
             Upcoming · 7d
           </span>
         </div>
-        <Link href="/calendar" className="text-xs text-navy-100 hover:text-white">
+        <Link href="/calendar" className="text-xs text-ink-500 hover:text-ink-900">
           전체 캘린더 +
         </Link>
       </header>

@@ -24,12 +24,15 @@ function changeColor(n: number | null): string {
   return "text-ink-500";
 }
 
-// 카드 상단 타이틀 바 — 다른 섹션과 동일하게 남색 배경 + 흰 글씨
+// 카드 상단 타이틀 바 — Cobak: 밝은 헤더 + 그린 점 + 잉크 타이틀 (검은 바 폐지)
 function CardHead({ title, meta }: { title: string; meta: string }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
-      <h2 className="text-sm font-semibold text-white">{title}</h2>
-      <span className="font-mono text-[10px] tracking-[0.12em] text-navy-300 uppercase">{meta}</span>
+    <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-4 py-3">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
+        <span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />
+        {title}
+      </h2>
+      <span className="font-mono text-[10px] tracking-[0.12em] text-ink-500 uppercase">{meta}</span>
     </header>
   );
 }
@@ -73,7 +76,7 @@ export default async function MarketCards() {
       <TickerTable />
 
       {/* 02 · BTC DOMINANCE(압축) + 환율 USD/KRW */}
-      <section className="flex flex-col border border-line bg-white transition-colors hover:border-navy-300">
+      <section className="flex flex-col rounded-xl border border-line bg-white shadow-card transition-shadow hover:shadow-pop overflow-hidden">
         <CardHead title="BTC Dominance" meta={`${formatRelativeTime(overview.updatedAt)} · CoinGecko`} />
 
         <div className="flex flex-1 flex-col p-5">
@@ -97,8 +100,8 @@ export default async function MarketCards() {
             values={domHistory.map((s) => s.btcDominance)}
             width={96}
             height={36}
-            stroke="#20305f"
-            accentRing="#20305f"
+            stroke="#5a616b"
+            accentRing="#078f18"
           />
         </div>
 
@@ -167,7 +170,7 @@ export default async function MarketCards() {
       </section>
 
       {/* 03 · FEAR & GREED */}
-      <section className="flex flex-col border border-line bg-white transition-colors hover:border-navy-300">
+      <section className="flex flex-col rounded-xl border border-line bg-white shadow-card transition-shadow hover:shadow-pop overflow-hidden">
         <CardHead title="Fear &amp; Greed" meta="Daily" />
         <div className="flex flex-1 flex-col p-5">
         {latestFng ? (

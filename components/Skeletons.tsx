@@ -7,13 +7,13 @@ function Bar({ className = "" }: { className?: string }) {
   return <div className={`rounded bg-paper2 ${className}`} />;
 }
 
-// 섹션 공통 셸(남색 헤더 + 흰 본문) — SignalRadar·ListingsStrip·UpcomingEvents 공용
+// 섹션 공통 셸(라이트 헤더 + 흰 본문) — SignalRadar·ListingsStrip·UpcomingEvents 공용
 function SectionShell({ minBody }: { minBody: string }) {
   return (
-    <section className="border border-line bg-white">
-      <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
-        <div className="h-4 w-32 rounded bg-navy-700" />
-        <div className="h-3 w-16 rounded bg-navy-700" />
+    <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden">
+      <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
+        <div className="h-4 w-32 rounded bg-line" />
+        <div className="h-3 w-16 rounded bg-line" />
       </header>
       <div className={`animate-pulse p-4 ${minBody}`}>
         <div className="flex flex-col gap-2.5">
@@ -61,10 +61,10 @@ export function MarketCardsSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
       {Array.from({ length: 3 }).map((_, i) => (
-        <section key={i} className="flex min-h-[340px] flex-col border border-line bg-white">
-          <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
-            <div className="h-4 w-28 rounded bg-navy-700" />
-            <div className="h-3 w-16 rounded bg-navy-700" />
+        <section key={i} className="flex min-h-[340px] flex-col rounded-xl border border-line bg-white shadow-card overflow-hidden">
+          <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
+            <div className="h-4 w-28 rounded bg-line" />
+            <div className="h-3 w-16 rounded bg-line" />
           </header>
           <div className="flex flex-1 animate-pulse flex-col gap-3 p-5">
             <Bar className="h-8 w-32" />
@@ -87,9 +87,9 @@ export function SignalRadarSkeleton() {
 // ── 홈: 오늘 신규 상장 예정(스트립) ──
 export function ListingsStripSkeleton() {
   return (
-    <section className="border border-line bg-white">
-      <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
-        <div className="h-4 w-40 rounded bg-navy-700" />
+    <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden">
+      <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
+        <div className="h-4 w-40 rounded bg-line" />
       </header>
       <div className="flex min-h-[52px] animate-pulse flex-wrap gap-2 px-4 py-3">
         {Array.from({ length: 4 }).map((_, i) => (

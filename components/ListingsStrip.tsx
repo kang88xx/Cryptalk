@@ -50,11 +50,11 @@ export default async function ListingsStrip() {
   const now = Date.now();
 
   return (
-    <section className="border border-line bg-white">
-      <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
+    <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+      <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
         <div className="flex items-baseline gap-2">
-          <h2 className="text-sm font-semibold text-white">신규 상장·상폐 정보</h2>
-          <span className="text-xs text-navy-100">{listings.length}건 · 예정 시각(KST)</span>
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />신규 상장·상폐 정보</h2>
+          <span className="text-xs text-ink-500">{listings.length}건 · 예정 시각(KST)</span>
         </div>
       </header>
 
@@ -84,7 +84,7 @@ export default async function ListingsStrip() {
                     ${l.symbol}
                   </span>
                 )}
-                <span className={`truncate ${imminent ? "text-red-700" : "text-ink-700"}`}>
+                <span className={`min-w-0 flex-1 truncate ${imminent ? "text-red-700" : "text-ink-700"}`}>
                   {koDetail(l)}
                 </span>
                 {l.scheduledAt ? (
@@ -106,7 +106,7 @@ export default async function ListingsStrip() {
                 )}
               </>
             );
-            const tileCls = `flex items-center gap-1.5 border px-2 py-1 text-xs ${
+            const tileCls = `flex items-center gap-1.5 border px-2 py-1 text-xs min-w-0 max-w-full ${
               imminent
                 ? "border-red-500 bg-red-50"
                 : "border-line bg-paper hover:border-navy-300"

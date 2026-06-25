@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cryptalk - 크립토 커뮤니티",
-  description: "실시간 시세와 김치프리미엄, 크립토 커뮤니티 Cryptalk",
+  title: "Coinom 코인놈 - 크립토 커뮤니티",
+  description: "실시간 시세와 김치프리미엄, 크립토 커뮤니티 코인놈(Coinom)",
 };
 
 export default function RootLayout({
@@ -43,7 +43,7 @@ export default function RootLayout({
         <LogoStrip />
         <footer className="border-t border-line bg-white">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-1 px-4 py-6">
-            <p className="rail">Cryptalk · Crypto Community</p>
+            <p className="rail">Coinom · Crypto Community</p>
             <p className="text-xs text-ink-500">
               시세 출처: 업비트 · 바이낸스 · Yahoo(환율) — 투자 판단의 책임은 본인에게 있습니다.
             </p>

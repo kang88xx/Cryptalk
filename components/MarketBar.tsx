@@ -6,9 +6,9 @@ import MarketStatus, { type Mkt } from "@/components/MarketStatus";
 
 // 등락 색: 한국식 (상승=빨강, 하락=파랑)
 function dir(n: number | null): { text: string; stroke: string } {
-  if (n != null && n > 0) return { text: "text-red-600", stroke: "#DC2626" };
-  if (n != null && n < 0) return { text: "text-indigo-700", stroke: "#4853C4" };
-  return { text: "text-ink-500", stroke: "#A0A6BB" };
+  if (n != null && n > 0) return { text: "text-up", stroke: "#e5443b" }; // 상승 — 레드
+  if (n != null && n < 0) return { text: "text-down", stroke: "#2e7ce6" }; // 하락 — 블루
+  return { text: "text-neutral", stroke: "#7d858f" };
 }
 
 // 타일 키 → 시장 구분 (장중/장마감 판별용)

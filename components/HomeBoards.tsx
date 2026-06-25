@@ -28,10 +28,10 @@ export default async function HomeBoards() {
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-      <section className="border border-line bg-white">
-        <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-white">자유게시판 최신글</h2>
-          <Link href="/free" className="text-xs text-navy-100 hover:text-white">
+      <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+        <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />자유게시판 최신글</h2>
+          <Link href="/free" className="text-xs text-ink-500 hover:text-ink-900">
             더보기 +
           </Link>
         </header>
@@ -63,10 +63,10 @@ export default async function HomeBoards() {
       </section>
 
       <aside className="flex flex-col gap-6">
-        <section className="border border-line bg-white">
-          <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
-            <h2 className="text-sm font-semibold text-white">시장 분석</h2>
-            <Link href="/analysis" className="text-xs text-navy-100 hover:text-white">
+        <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+          <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />시장 분석</h2>
+            <Link href="/analysis" className="text-xs text-ink-500 hover:text-ink-900">
               더보기 +
             </Link>
           </header>
@@ -95,9 +95,9 @@ export default async function HomeBoards() {
             </ul>
           )}
         </section>
-        <section className="border border-line bg-white">
-          <header className="bg-navy-900 px-4 py-2.5">
-            <h2 className="text-sm font-semibold text-white">인기글 TOP 9</h2>
+        <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+          <header className="border-b border-line bg-white px-4 py-3">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />인기글 TOP 9</h2>
           </header>
           {hotPosts.length === 0 ? (
             <p className="px-4 py-6 text-center text-xs text-ink-500">아직 인기글이 없습니다.</p>

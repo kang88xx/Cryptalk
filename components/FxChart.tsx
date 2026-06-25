@@ -20,7 +20,7 @@ export default function FxChart({ points }: { points: Pt[] }) {
   const x = (i: number) =>
     points.length === 1 ? padX + innerW / 2 : padX + (innerW * i) / (points.length - 1);
   const y = (r: number) => padTop + innerH - ((r - min) / span) * innerH;
-  const color = (ch: number | null) => (ch == null ? "#9aa4c8" : ch >= 0 ? "#DC2626" : "#4853C4");
+  const color = (ch: number | null) => (ch == null ? "#7d858f" : ch >= 0 ? "#e5443b" : "#2e7ce6");
 
   const linePts = points.map((p, i) => `${x(i).toFixed(1)},${y(p.rate).toFixed(1)}`).join(" ");
 
@@ -29,7 +29,7 @@ export default function FxChart({ points }: { points: Pt[] }) {
       <polyline
         points={linePts}
         fill="none"
-        stroke="#20305f"
+        stroke="#5a616b"
         strokeWidth={1.5}
         strokeLinejoin="round"
         strokeLinecap="round"

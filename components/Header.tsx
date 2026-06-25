@@ -31,17 +31,21 @@ export default async function Header() {
     <header className="border-b border-line bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-y-2 px-4 py-3">
         <div className="flex shrink-0 items-center gap-3 md:flex-1">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="inline-block h-3.5 w-3.5 bg-amber-500" aria-hidden />
-            <span className="text-xl font-semibold uppercase tracking-tight text-navy-900">
-              Cryptalk
+          <Link href="/" className="flex items-center gap-2.5">
+            <span
+              className="inline-block h-3 w-3 rounded-full bg-brand"
+              style={{ boxShadow: "0 0 12px var(--color-brand)" }}
+              aria-hidden
+            />
+            <span className="text-xl font-extrabold tracking-tight text-navy-900">
+              Coinom
             </span>
           </Link>
           <RefreshButton />
         </div>
 
         {/* 가운데 메뉴 — 모바일에서는 둘째 줄 가로 스크롤, 데스크톱에서는 페이지 정중앙 */}
-        <nav className="order-3 -mx-4 flex w-screen items-center gap-1 overflow-x-auto px-4 text-sm whitespace-nowrap md:order-none md:mx-0 md:w-auto md:shrink-0 md:justify-center md:px-0">
+        <nav className="order-3 -mx-4 flex w-full min-w-0 items-center gap-1 overflow-x-auto px-4 text-sm whitespace-nowrap md:order-none md:mx-0 md:w-auto md:shrink-0 md:justify-center md:px-0">
           {NAV.map(([href, label]) => (
             <Link
               key={href}
@@ -54,13 +58,13 @@ export default async function Header() {
         </nav>
 
         {/* 우측 — 회원 · 출석체크(로그인 시) */}
-        <div className="ml-auto flex shrink-0 items-center gap-3 text-sm md:ml-0 md:flex-1 md:justify-end">
+        <div className="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-x-3 gap-y-1.5 text-sm md:ml-0 md:flex-1">
           {session?.user ? (
             <>
               {me && me.level >= ADMIN_MIN_LEVEL && (
                 <Link
                   href="/admin/prizes"
-                  className="border-b-2 border-transparent py-1.5 font-medium text-amber-500 hover:border-amber-500 hover:text-amber-400"
+                  className="border-b-2 border-transparent py-1.5 font-semibold text-brand-ink hover:border-brand-ink hover:text-brand-ink"
                 >
                   어드민
                 </Link>
@@ -77,7 +81,7 @@ export default async function Header() {
               {me && !me.nicknameConfirmed && (
                 <Link
                   href="/settings"
-                  className="border border-amber-500 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-100"
+                  className="rounded-md border border-brand-ink bg-brand-weak px-2 py-1 text-xs font-semibold text-brand-ink hover:bg-brand"
                 >
                   닉네임 설정
                 </Link>

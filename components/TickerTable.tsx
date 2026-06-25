@@ -45,20 +45,20 @@ export default function TickerTable() {
   }, []);
 
   return (
-    <section className="border border-line bg-white">
-      <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
-        <h2 className="text-sm font-semibold text-white">실시간 시세</h2>
-        <span className="font-mono text-[10px] tracking-[0.12em] text-navy-300 uppercase">
+    <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-4 py-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />실시간 시세</h2>
+        <span className="font-mono text-[10px] tracking-[0.12em] text-ink-500 uppercase">
           UPBIT · USD/KRW {snapshot ? snapshot.usdKrw.toLocaleString() : "–"}
         </span>
       </header>
       <table className="w-full text-xs">
         <thead>
-          <tr className="bg-navy-900 font-light text-white">
-            <th className="px-4 py-2 text-left font-normal">코인</th>
-            <th className="px-2 py-2 text-right font-normal">시세(원)</th>
-            <th className="px-2 py-2 text-right font-normal">24H</th>
-            <th className="px-4 py-2 text-right font-normal">김프</th>
+          <tr className="bg-paper2 font-medium text-ink-700">
+            <th className="px-4 py-2 text-left font-normal text-ink-700">코인</th>
+            <th className="px-2 py-2 text-right font-normal text-ink-700">시세(원)</th>
+            <th className="px-2 py-2 text-right font-normal text-ink-700">24H</th>
+            <th className="px-4 py-2 text-right font-normal text-ink-500">김프</th>
           </tr>
         </thead>
         <tbody>

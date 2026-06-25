@@ -27,11 +27,11 @@ export default function SignalRadarBoard({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* 섹션 1: 지금 봐야 할 코인 */}
-      <section className="flex flex-col border border-line bg-white">
-        <header className="flex flex-wrap items-center justify-between gap-2 bg-navy-900 px-4 py-2.5">
+      <section className="flex flex-col rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-white px-4 py-3">
           <div className="flex items-baseline gap-2">
-            <h2 className="text-sm font-semibold text-white">지금 봐야 할 코인</h2>
-            <span className="hidden text-[11px] font-medium tracking-[0.12em] text-navy-300 uppercase sm:inline">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />지금 봐야 할 코인</h2>
+            <span className="hidden text-[11px] font-medium tracking-[0.12em] text-ink-500 uppercase sm:inline">
               KRW Signal Radar
             </span>
           </div>
@@ -41,7 +41,7 @@ export default function SignalRadarBoard({
                 상승 {breadth.upPct.toFixed(0)}% · {breadth.signal.label}
               </span>
             )}
-            <span className="text-[10px] text-navy-300">{freshness}</span>
+            <span className="text-[10px] text-ink-500">{freshness}</span>
           </div>
         </header>
 
@@ -92,10 +92,10 @@ export default function SignalRadarBoard({
       </section>
 
       {/* 섹션 2: 시총 상위 버블맵 */}
-      <section className="flex flex-col border border-line bg-white">
-        <header className="flex items-center justify-between bg-navy-900 px-4 py-2.5">
-          <h2 className="text-sm font-semibold text-white">시총 상위 버블맵</h2>
-          <span className="text-[11px] font-medium tracking-[0.12em] text-navy-300 uppercase">
+      <section className="flex flex-col rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
+        <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />시총 상위 버블맵</h2>
+          <span className="text-[11px] font-medium tracking-[0.12em] text-ink-500 uppercase">
             Bubble Map
           </span>
         </header>

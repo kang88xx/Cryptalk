@@ -1,33 +1,73 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 @import "tailwindcss";
 
-/* ARK Design System v2.0 tokens — navy core · amber accent · paper ground */
+/* ───────────────────────────────────────────────────────────────
+   Cobak Design System tokens
+   네온 그린 브랜드 · 뉴트럴 그레이 표면 · 한국 증시 관례(상승=레드/하락=블루)
+   기존 토큰 이름(paper/navy/amber/ink/indigo)은 유지하고 값만 Cobak으로 매핑 →
+   사이트 전체 색·타이포가 일괄 전환된다.
+   ─────────────────────────────────────────────────────────────── */
 @theme {
-  --color-paper: #f4f4f8;
-  --color-paper2: #ecedf3;
-  --color-line: #e3e5ee;
+  /* 표면 · 그라운드 */
+  --color-paper: #f7f8fa; /* bg */
+  --color-paper2: #f1f3f6; /* surface-2 */
+  --color-line: #e8ebef; /* border */
 
-  --color-navy-950: #16224a;
-  --color-navy-900: #20305f;
-  --color-navy-700: #35478c;
-  --color-navy-500: #526394;
-  --color-navy-400: #717c9d;
-  --color-navy-300: #9aa4c8;
-  --color-navy-100: #dadeed;
+  /* navy* → Cobak 뉴트럴 그레이(다크) — 다크버튼·표면. 순검정 대신 살짝 누그러뜨림(피로↓) */
+  --color-navy-950: #111418;
+  --color-navy-900: #1f252c; /* 다크 표면/버튼 (헤더 검정바는 P2에서 밝게 교체됨) */
+  --color-navy-700: #12161b; /* 다크버튼 hover(더 진하게) */
+  --color-navy-600: #404650; /* 보조 다크 텍스트 */
+  --color-navy-500: #5a616b;
+  --color-navy-400: #6e757f;
+  --color-navy-300: #d3d8df; /* border-strong — 인풋 보더 */
+  --color-navy-100: #e9ecf1; /* surface-3 */
 
-  --color-amber-500: #efc540;
-  --color-amber-400: #f3d266;
-  --color-amber-300: #f6dd8c;
+  /* amber* → Cobak 브랜드 그린. 넓은 면적용으로 톤다운(#00FF16→#00D91F, 망막 자극↓) */
+  --color-amber-500: #00d91f; /* brand */
+  --color-amber-400: #00c81d; /* hover(진하게) */
+  --color-amber-300: #7de88a;
+  --color-amber-50: #eaffed; /* green-50 — 소프트 하이라이트 */
+  --color-amber-700: #078f18; /* 읽히는 다크 그린(텍스트) */
+  --color-amber-800: #066312;
+  --color-amber-900: #04300a;
 
-  --color-indigo-500: #636ddb;
-  --color-indigo-300: #a3a8ea;
-  --color-indigo-700: #4853c4;
+  /* indigo* → Cobak 블루(하락) */
+  --color-indigo-500: #2e7ce6;
+  --color-indigo-300: #88b4f0;
+  --color-indigo-700: #2566c9;
 
-  --color-ink-900: #0f1320;
-  --color-ink-700: #363c4f;
-  --color-ink-500: #5c637a;
-  --color-ink-400: #787f93;
-  --color-ink-300: #9aa0b0;
+  /* ink* → Cobak 텍스트 위계 */
+  --color-ink-900: #14161a; /* fg */
+  --color-ink-700: #4a4f57; /* fg-2 */
+  --color-ink-500: #878e97; /* fg-3 */
+  --color-ink-400: #9aa0a8;
+  --color-ink-300: #bfc4cc;
+
+  /* ── Cobak 전용 시맨틱 토큰 (신규 컴포넌트용) ── */
+  --color-brand: #00d91f; /* CTA·로고·활성 (톤다운) */
+  --color-brand-ink: #078f18; /* 읽히는 그린 — 텍스트·아이콘 */
+  --color-brand-weak: #eaffed;
+  --color-on-brand: #04300a; /* 브랜드 위 다크 텍스트 */
+
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f3f6;
+  --color-surface-3: #e9ecf1;
+  --color-border-strong: #d3d8df;
+
+  --color-up: #e5443b; /* 상승 — 레드 */
+  --color-down: #2e7ce6; /* 하락 — 블루 */
+  --color-neutral: #7d858f; /* 보합 — 뉴트럴 */
+  --color-warn: #e08a12;
+  --color-info: #2e7ce6;
+  --color-up-bg: #fdecec;
+  --color-down-bg: #eaf2fd;
+  --color-warn-bg: #fef4e2;
+  --color-info-bg: #eaf2fd;
+
+  /* 엘리베이션 — shadow-card / shadow-pop 유틸리티 생성 */
+  --shadow-card: 0 1px 3px rgba(20, 22, 26, 0.08), 0 1px 2px rgba(20, 22, 26, 0.04);
+  --shadow-pop: 0 10px 30px rgba(20, 22, 26, 0.1);
 }
 
 @theme inline {
@@ -43,6 +83,17 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* Cobak: 그린 셀렉션 */
+::selection {
+  background: #00ff16;
+  color: #04300a;
+}
+
+/* 숫자(시세)는 tabular-nums로 자리수 정렬 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
 /* 페이지 레일 · 시스템 태그 — Pretendard */
 .rail {
   font-family: var(--font-sans);
@@ -50,17 +101,17 @@ body {
   font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-navy-500);
+  color: var(--color-ink-500);
 }
 
-/* 아이브로우 — 섹션 라벨 */
+/* 아이브로우 — 섹션 라벨 (Cobak: 브랜드 잉크 그린) */
 .eyebrow {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--color-navy-500);
+  color: var(--color-brand-ink);
 }
 
 @keyframes ticker-scroll {

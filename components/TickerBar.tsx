@@ -60,7 +60,7 @@ export default function TickerBar() {
               <span className="font-light text-navy-100">{formatKrw(t.priceKrw)}</span>
               <span className={changeColor(t.change24h)}>{formatPercent(t.change24h)}</span>
               {t.kimchiPremium != null && (
-                <span className="text-amber-500">김프 {formatPercent(t.kimchiPremium)}</span>
+                <span className="text-[#f3d266]">김프 {formatPercent(t.kimchiPremium)}</span>
               )}
             </span>
           ))
