@@ -11,6 +11,7 @@ import {
 } from "@/lib/ticker";
 import { getMarketOverview, getFxHistory, getBubbles } from "@/lib/market";
 import { getTodayListings } from "@/lib/listings";
+import { getExchangeListingSets } from "@/lib/exchange-listings";
 import { getMarketBar } from "@/lib/marketbar";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export async function GET(req: Request) {
     getFxHistory(),
     getBubbles(),
     getTodayListings(),
+    getExchangeListingSets(),
     getMarketBar(),
   ]);
   const warmFailed = warm.filter((r) => r.status === "rejected").length;

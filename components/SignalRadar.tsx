@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSignalRadar, getKrwMarketStats, getTrendLabels } from "@/lib/ticker";
 import { getTodayListings } from "@/lib/listings";
+import { getExchangeListingSets, listingGapsFor, EX_KO } from "@/lib/exchange-listings";
 import { radarChips, breadthSignal } from "@/lib/signals";
 import { formatRelativeTime } from "@/lib/format";
 import { upcomingKstRange } from "@/lib/time";
@@ -10,7 +11,7 @@ import type { DrawerCoin } from "@/components/CoinDrawer";
 // "지금 봐야 할 코인" — 거래대금 상위 코인에 등락·김프·오늘 일정/상장 reason chip을 결합
 export default async function SignalRadar() {
   const { startUtc, endUtc } = upcomingKstRange(1); // 오늘(KST)
-  const [radar, stats, listings, todayEvents, trend] = await Promise.all([
+  const [radar, stats, listings, todayEvents, trend, listingSets] = await Promise.all([
     getSignalRadar(),
     getKrwMarketStats(),
     getTodayListings(),
@@ -19,6 +20,7 @@ export default async function SignalRadar() {
       select: { ticker: true },
     }),
     getTrendLabels(),
+    getExchangeListingSets(),
   ]);
 
   const eventTickers = new Set(todayEvents.map((e) => e.ticker.toUpperCase()));
@@ -26,14 +28,22 @@ export default async function SignalRadar() {
     listings.listings.map((l) => l.symbol?.toUpperCase()).filter((s): s is string => !!s)
   );
 
-  const items: DrawerCoin[] = radar.coins.slice(0, 10).map((coin) => ({
-    coin,
-    chips: radarChips(coin, {
-      event: eventTickers.has(coin.symbol.toUpperCase()),
-      listing: listingSymbols.has(coin.symbol.toUpperCase()),
-      trend: trend[coin.symbol]?.label,
-    }),
-  }));
+  const items: DrawerCoin[] = radar.coins.slice(0, 10).map((coin) => {
+    // 다른 메이저 거래소에 빠진 곳이 있으면 "○○ 상장 가능성" 칩 (최대 2곳 표기)
+    const gaps = listingGapsFor(coin.symbol, listingSets);
+    const listingPotential = gaps.length
+      ? gaps.slice(0, 2).map((e) => EX_KO[e]).join("·")
+      : undefined;
+    return {
+      coin,
+      chips: radarChips(coin, {
+        event: eventTickers.has(coin.symbol.toUpperCase()),
+        listing: listingSymbols.has(coin.symbol.toUpperCase()),
+        trend: trend[coin.symbol]?.label,
+        listingPotential,
+      }),
+    };
+  });
 
   const hasBreadth = stats.total > 0;
   const breadth = hasBreadth

@@ -1,5 +1,6 @@
 import { cachedJson } from "@/lib/cache";
 import { fetchJson } from "@/lib/http";
+import { getBubbles } from "@/lib/market";
 
 export type Ticker = {
   symbol: string;
@@ -430,11 +431,14 @@ export type SignalRadar = { coins: RadarCoin[]; updatedAt: string };
 const RADAR_TTL_MS = 60_000;
 
 async function fetchSignalRadar(): Promise<SignalRadar> {
-  const [{ rows: krwRows, fetchedAt }, fx, priceMap, namesKo] = await Promise.all([
+  // 하이브리드: '종목 범위'는 코인게코 글로벌 시총 상위로 잡고, 가격·역프·추세는 업비트/바이낸스로.
+  // → 잡코인 KRW 거래대금 순이 아니라 글로벌 주요 코인 위주로 보여주되, 역프·추세 신호는 유지.
+  const [{ rows: krwRows, fetchedAt }, fx, priceMap, namesKo, bubbles] = await Promise.all([
     getAllKrwTickers(),
     fetchUsdKrw(),
     getBinancePrices().catch(() => new Map<string, number>()), // 김프는 보조 — 실패해도 레이더는 동작
     getUpbitNamesKo().catch(() => new Map<string, string>()), // 한글명도 보조 — 실패 시 심볼 폴백
+    getBubbles().catch(() => ({ coins: [], updatedAt: "" })), // 시총 순서도 보조 — 실패 시 거래대금 순 폴백
   ]);
   if (krwRows.length === 0) throw new Error("upbit all-KRW unavailable");
 
@@ -442,11 +446,23 @@ async function fetchSignalRadar(): Promise<SignalRadar> {
   const RADAR_STABLES = new Set(["USDT", "USDC", "DAI", "TUSD", "USDS", "FDUSD"]);
   const liquid = [...krwRows]
     .filter((r) => (r.acc_trade_price_24h ?? 0) >= LIQUIDITY_FLOOR_KRW)
-    .filter((r) => !RADAR_STABLES.has(r.market.replace("KRW-", "")))
-    .sort((a, b) => b.acc_trade_price_24h - a.acc_trade_price_24h);
+    .filter((r) => !RADAR_STABLES.has(r.market.replace("KRW-", "")));
 
-  const coins: RadarCoin[] = liquid.slice(0, 12).map((r, i) => {
-    const symbol = r.market.replace("KRW-", "");
+  // 업비트 KRW 거래대금 순위(시장 전체) — "거래대금 N위" 배지의 기준은 그대로 유지
+  const byVolume = [...liquid].sort((a, b) => b.acc_trade_price_24h - a.acc_trade_price_24h);
+  const volumeRank = new Map<string, number>();
+  byVolume.forEach((r, i) => volumeRank.set(r.market.replace("KRW-", ""), i + 1));
+
+  // 심볼 → 업비트 ticker (KRW 가격·변동률·거래대금)
+  const upbitBySym = new Map(byVolume.map((r) => [r.market.replace("KRW-", ""), r]));
+
+  // 종목 선정: 코인게코 시총 상위 순서 중 '업비트 상장(유동성 충족)'인 것만. 비면 거래대금 순 폴백.
+  const mcapOrder = bubbles.coins.map((c) => c.symbol).filter((s) => upbitBySym.has(s));
+  const orderedSyms =
+    mcapOrder.length > 0 ? mcapOrder : byVolume.map((r) => r.market.replace("KRW-", ""));
+
+  const coins: RadarCoin[] = orderedSyms.slice(0, 12).map((symbol) => {
+    const r = upbitBySym.get(symbol)!;
     const usd = priceMap.get(`${symbol}USDT`);
     const kimchi =
       usd != null && Number.isFinite(usd) && usd > 0
@@ -459,7 +475,7 @@ async function fetchSignalRadar(): Promise<SignalRadar> {
       change24h: r.signed_change_rate * 100,
       kimchi,
       volumeKrw24h: r.acc_trade_price_24h,
-      volumeRank: i + 1,
+      volumeRank: volumeRank.get(symbol) ?? 0,
     };
   });
 

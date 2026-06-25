@@ -54,7 +54,7 @@ export function breadthSignal(upRatio: number | null): Signal | null {
 // 시그널 레이더 reason chip — 코인별 "지금 주목할 이유"를 한 곳에서 생성
 export function radarChips(
   c: { volumeRank: number; change24h: number; kimchi: number | null },
-  opts: { event?: boolean; listing?: boolean; trend?: string } = {}
+  opts: { event?: boolean; listing?: boolean; trend?: string; listingPotential?: string } = {}
 ): Signal[] {
   const chips: Signal[] = [];
   if (c.volumeRank <= 3) chips.push({ label: `거래대금 ${c.volumeRank}위`, tone: "note" });
@@ -71,6 +71,8 @@ export function radarChips(
     else if (c.kimchi <= -1) chips.push({ label: `역프 ${c.kimchi.toFixed(1)}%`, tone: "note" });
   }
   if (opts.listing) chips.push({ label: "선물 상장", tone: "alert" });
+  // 교차상장 신호 — 여러 거래소에 상장됐는데 빠진 곳이 있으면 "○○ 상장 가능성"
+  if (opts.listingPotential) chips.push({ label: `${opts.listingPotential} 상장 가능성`, tone: "note" });
   if (opts.event) chips.push({ label: "오늘 일정", tone: "note" });
   return chips;
 }

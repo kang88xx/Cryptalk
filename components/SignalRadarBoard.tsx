@@ -50,14 +50,14 @@ export default function SignalRadarBoard({
             <p className="px-4 py-8 text-center text-sm text-ink-500">데이터를 불러오지 못했습니다.</p>
           ) : (
             <ul className="divide-y divide-line">
-              {items.map(({ coin, chips }) => (
+              {items.map(({ coin, chips }, idx) => (
                 <li key={coin.symbol}>
                   <button
                     onClick={() => setSelected({ coin, chips })}
                     className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-xs hover:bg-paper"
                   >
                     <span className="w-4 shrink-0 text-center text-[10px] font-bold text-navy-300">
-                      {coin.volumeRank}
+                      {idx + 1}
                     </span>
                     <span className="flex w-20 shrink-0 flex-col leading-tight">
                       <span className="truncate text-[11px] font-semibold text-navy-900">{coin.nameKo}</span>
