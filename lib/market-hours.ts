@@ -1,7 +1,8 @@
-export type Mkt = "us" | "kr" | "gold";
+export type Mkt = "us" | "kr" | "gold" | "crypto";
 
 // 시장별 개장 여부 — 각 시장 현지시간 기준으로 판별
 export function isMarketOpen(market: Mkt): boolean {
+  if (market === "crypto") return true; // 코인은 24시간 거래
   const tz = market === "kr" ? "Asia/Seoul" : "America/New_York";
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,

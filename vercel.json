@@ -1,4 +1,7 @@
 {
   "regions": ["icn1"],
-  "crons": [{ "path": "/api/cron/market", "schedule": "*/5 * * * *" }]
+  "crons": [
+    { "path": "/api/cron/market", "schedule": "*/5 * * * *" },
+    { "path": "/api/cron/mining-cost", "schedule": "0 */6 * * *" }
+  ]
 }

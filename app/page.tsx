@@ -5,6 +5,7 @@ import ListingsStrip from "@/components/ListingsStrip";
 import UpcomingEvents from "@/components/UpcomingEvents";
 import HomeBoards from "@/components/HomeBoards";
 import CryptoCalendar from "@/components/CryptoCalendar";
+import TelegramChannels from "@/components/TelegramChannels";
 import {
   MarketCardsSkeleton,
   SignalRadarSkeleton,
@@ -33,6 +34,8 @@ export default function Home() {
         </h2>
         <CryptoCalendar initialYear={now.getFullYear()} initialMonth={now.getMonth() + 1} />
       </section>
+      {/* 인게이지먼트 높은 한국 텔레그램 채널 — 캘린더와 실시간 시세 사이 (현재 더미) */}
+      <TelegramChannels />
       <Suspense fallback={<MarketCardsSkeleton />}>
         <MarketCards />
       </Suspense>
