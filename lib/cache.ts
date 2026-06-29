@@ -44,8 +44,14 @@ export async function cachedJson<T>(
 
   try {
     return (await inflight.get(key)!) as T;
-  } catch {
-    if (row) return row.data as T; // 갱신 실패 시 stale 반환
+  } catch (err) {
+    if (row) {
+      // 갱신 실패 → 직전 데이터(stale) 반환. 조용히 넘기지 말고 경고로 남겨 만료 누적을 감지한다.
+      const ageMin = Math.round((Date.now() - row.updatedAt.getTime()) / 60000);
+      console.warn(`[cache] ${key} 갱신 실패 → stale 반환 (${ageMin}분 경과)`, err);
+      return row.data as T;
+    }
+    console.error(`[cache] ${key} 갱신 실패 + 직전 데이터 없음`, err);
     throw new Error(`marketCache:${key} 사용 불가`);
   }
 }

@@ -36,7 +36,9 @@ export default function RootLayout({
         <TickerBar />
         {/* 마켓바 — 티커 바 아래에 배치 (크립토·주가지수·코인 미니차트 + 동시접속·언어) */}
         <Suspense fallback={<MarketBarSkeleton />}>
-          <MarketBar />
+          <div className="reveal">
+            <MarketBar />
+          </div>
         </Suspense>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
         <AppPromo />

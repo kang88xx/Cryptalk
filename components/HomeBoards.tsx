@@ -29,6 +29,8 @@ export default async function HomeBoards() {
   ]);
 
   // HN식 시간감쇠: score = upvotes / (ageHours + 2)^0.6 — 추천수가 같으면 최신 글이 우선.
+  // 서버 컴포넌트라 요청당 1회만 평가됨 — 요청 시각(now)을 읽는 건 의도된 동작이라 purity 룰을 끈다.
+  // eslint-disable-next-line react-hooks/purity
   const nowMs = Date.now();
   const hotPosts = [...hotCandidates]
     .map((p) => {

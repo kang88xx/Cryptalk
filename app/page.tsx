@@ -27,22 +27,30 @@ export default async function Home() {
   const initialEvents = await getMonthEvents(calYear, calMonth);
   return (
     <div className="flex flex-col gap-6">
-      {/* 신규 상장·상폐 정보 — 맨 위 */}
+      {/* 신규 상장·상폐 정보 — 맨 위. 스켈레톤이 풀리면 .reveal로 부드럽게 등장 */}
       <Suspense fallback={<ListingsStripSkeleton />}>
-        <ListingsStrip />
+        <div className="reveal">
+          <ListingsStrip />
+        </div>
       </Suspense>
       {/* 크립토 캘린더 — 신규 상장 바로 아래 (제목은 캘린더 자체 헤더 사용) */}
       <CryptoCalendar initialYear={calYear} initialMonth={calMonth} initialEvents={initialEvents} />
       {/* 인게이지먼트 높은 한국 텔레그램 채널 — 캘린더 아래 */}
       <TelegramChannels />
       <Suspense fallback={<SignalRadarSkeleton />}>
-        <SignalRadar />
+        <div className="reveal">
+          <SignalRadar />
+        </div>
       </Suspense>
       <Suspense fallback={<UpcomingEventsSkeleton />}>
-        <UpcomingEvents />
+        <div className="reveal">
+          <UpcomingEvents />
+        </div>
       </Suspense>
       <Suspense fallback={<HomeBoardsSkeleton />}>
-        <HomeBoards />
+        <div className="reveal">
+          <HomeBoards />
+        </div>
       </Suspense>
     </div>
   );

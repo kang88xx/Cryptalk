@@ -299,6 +299,13 @@ async function scrape(): Promise<{ listings: Listing[]; updatedAt: string }> {
   if (!res.ok) throw new Error(`${SRC_URL} -> ${res.status}`);
   const html = await res.text();
   const all = parseListings(html);
+  // HTML은 받았는데 메시지 블록이 0건이면 '오늘 상장 없음'이 아니라 위젯 마크업이 바뀐 신호일 수 있다.
+  // (정규식 파싱이라 t.me 구조가 바뀌면 조용히 빈 결과가 캐싱됨 → 경고로 가시화)
+  if (all.length === 0) {
+    console.warn(
+      `[listings] ${SRC_URL} 파싱 결과 0건 (html ${html.length}B) — t.me 위젯 마크업 변경 가능성`
+    );
+  }
   const today = kstDay(new Date());
   const yesterday = kstDay(new Date(Date.now() - 24 * 3600_000));
   // 게시일이 오늘/어제인 후보까지 본다 — '어제 공지된 오늘 상장'을 놓치지 않기 위함.

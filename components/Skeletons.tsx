@@ -44,37 +44,23 @@ export function HeaderSkeleton() {
 }
 
 // ── 레이아웃: 마켓바 ──
+// 실제 MarketBar는 272×72 고정 타일을 3행(지수/코인/매크로)으로 그린다.
+// 스켈레톤도 같은 행 수·타일 높이를 예약해야 콘텐츠 도착 시 레이아웃 점프(CLS)가 없다.
 export function MarketBarSkeleton() {
   return (
     <div className="border-b border-line bg-paper">
-      <div className="mx-auto flex h-[44px] max-w-6xl items-center gap-2 px-4">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-6 w-20 animate-pulse rounded bg-paper2" />
+      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-2">
+        {Array.from({ length: 3 }).map((_, row) => (
+          <div key={row} className="flex flex-wrap justify-between gap-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-[72px] w-[272px] shrink-0 animate-pulse rounded border border-line bg-paper2"
+              />
+            ))}
+          </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// ── 홈: 3카드(시세·도미넌스/환율·공포탐욕) ──
-export function MarketCardsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <section key={i} className="flex min-h-[340px] flex-col rounded-xl border border-line bg-white shadow-card overflow-hidden">
-          <header className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
-            <div className="h-4 w-28 rounded bg-line" />
-            <div className="h-3 w-16 rounded bg-line" />
-          </header>
-          <div className="flex flex-1 animate-pulse flex-col gap-3 p-5">
-            <Bar className="h-8 w-32" />
-            <Bar className="h-3 w-40" />
-            <div className="my-2 h-px bg-line" />
-            <Bar className="h-5 w-3/4" />
-            <Bar className="mt-auto h-20 w-full" />
-          </div>
-        </section>
-      ))}
     </div>
   );
 }

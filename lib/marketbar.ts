@@ -418,8 +418,6 @@ async function fetchMarketBar(): Promise<MarketBarData> {
     });
   });
 
-  if (tiles.length === 0) throw new Error("market bar unavailable");
-
   // 2행 코인 — BTC·ETH (Binance)
   BINANCE_COINS.forEach((c, i) => {
     const r = coins[i];
@@ -513,6 +511,12 @@ async function fetchMarketBar(): Promise<MarketBarData> {
     fx: { fx6 },
     placeholder: usdKrw == null || fx6.length === 0,
   });
+
+  // 인덱스(Yahoo)가 전부 실패해도 코인·매크로 타일이 있으면 바를 그린다.
+  // 의미 있는(플레이스홀더가 아닌) 타일이 하나도 없을 때만 실패 처리해 캐시를 건너뛴다.
+  if (!tiles.some((t) => !t.placeholder)) {
+    throw new Error("market bar unavailable");
+  }
 
   return { tiles, updatedAt: new Date().toISOString() };
 }

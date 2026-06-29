@@ -203,7 +203,8 @@ export default function CryptoCalendar({
     const key = `${year}-${month}`;
     if (key === loadedKey) return; // 이미 로드된 달(SSR 초기 데이터 포함) — 재요청 안 함
     let alive = true;
-    setError(false);
+    // 에러 상태는 비동기 응답 분기에서만 갱신한다(effect 본문 동기 setState는 cascading render 유발).
+    // 로딩 중(loadedKey !== monthKey)에는 에러 UI가 가려지므로 직전 에러가 남아도 화면엔 영향 없음.
     fetch(`/api/events?year=${year}&month=${month}`)
       .then((res) => {
         if (!res.ok) throw new Error(`events ${res.status}`);
@@ -211,6 +212,7 @@ export default function CryptoCalendar({
       })
       .then((data) => {
         if (!alive) return;
+        setError(false);
         setEvents(data.events ?? []);
         setLoadedKey(key);
       })
