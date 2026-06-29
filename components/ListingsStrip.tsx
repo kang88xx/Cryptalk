@@ -1,5 +1,8 @@
 import { getTodayListings, type Exchange, type Listing } from "@/lib/listings";
 import { EXCHANGE_LOGOS } from "@/lib/logos";
+import { formatRelativeTime } from "@/lib/format";
+
+const EPOCH = new Date(0).toISOString();
 
 // 영문 피드 설명 → 국문 상장 유형 표기 (거래소명은 뱃지에 별도 노출)
 function koDetail(l: Listing): string {
@@ -45,10 +48,11 @@ function isImminent(scheduledAt: string | null, now: number): boolean {
 
 // 금일 신규 상장 예정 피드 — @NewListingsFeed 채널 기반, 캘린더 상단 노출
 export default async function ListingsStrip() {
-  const { listings } = await getTodayListings();
+  const { listings, updatedAt, ok } = await getTodayListings();
   // 서버 컴포넌트(요청마다 1회 렌더) — 상장 임박 판정용 현재시각. SSR이라 순수성 규칙 예외.
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
+  const freshness = ok && updatedAt !== EPOCH ? `${formatRelativeTime(updatedAt)} 수집` : null;
 
   return (
     <section className="rounded-xl border border-line bg-white shadow-card overflow-hidden transition-shadow hover:shadow-pop">
@@ -57,9 +61,14 @@ export default async function ListingsStrip() {
           <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900"><span className="h-1.5 w-1.5 rounded-full bg-brand" aria-hidden />신규 상장·상폐 정보</h2>
           <span className="text-xs text-ink-500">{listings.length}건 · 예정 시각(KST)</span>
         </div>
+        {freshness && <span className="text-[10px] text-ink-400">{freshness} · @NewListingsFeed</span>}
       </header>
 
-      {listings.length === 0 ? (
+      {!ok ? (
+        <p className="px-4 py-6 text-center text-xs text-ink-500">
+          상장 정보를 불러오지 못했습니다. 잠시 후 자동으로 다시 시도합니다.
+        </p>
+      ) : listings.length === 0 ? (
         <p className="px-4 py-6 text-center text-xs text-ink-500">
           오늘 신규 상장·상폐 소식이 아직 없습니다.
         </p>

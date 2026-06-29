@@ -51,10 +51,18 @@ export function breadthSignal(upRatio: number | null): Signal | null {
   return { label: "전면 강세 · 단기 과열", tone: "caution" };
 }
 
-// 시그널 레이더 reason chip — 코인별 "지금 주목할 이유"를 한 곳에서 생성
+// 시그널 레이더 reason chip — 코인별 "지금 주목할 이유"를 한 곳에서 생성.
+// listing: 오늘 상장 칩(거래소·유형별로 호출부에서 라벨/톤을 만들어 전달).
+// fxEstimated: 환율이 추정치(fallback)면 김프 칩은 가짜 신호가 되므로 표시하지 않는다.
 export function radarChips(
   c: { volumeRank: number; change24h: number; kimchi: number | null },
-  opts: { event?: boolean; listing?: boolean; trend?: string; listingPotential?: string } = {}
+  opts: {
+    event?: boolean;
+    listing?: Signal;
+    trend?: string;
+    listingPotential?: string;
+    fxEstimated?: boolean;
+  } = {}
 ): Signal[] {
   const chips: Signal[] = [];
   if (c.volumeRank <= 3) chips.push({ label: `거래대금 ${c.volumeRank}위`, tone: "note" });
@@ -66,13 +74,13 @@ export function radarChips(
   else if (c.change24h >= 5) chips.push({ label: `상승 +${c.change24h.toFixed(1)}%`, tone: "note" });
   else if (c.change24h <= -10) chips.push({ label: `급락 ${c.change24h.toFixed(1)}%`, tone: "caution" });
   else if (c.change24h <= -5) chips.push({ label: `하락 ${c.change24h.toFixed(1)}%`, tone: "note" });
-  if (c.kimchi != null) {
+  if (c.kimchi != null && !opts.fxEstimated) {
     if (c.kimchi >= 3) chips.push({ label: `김프 과열 +${c.kimchi.toFixed(1)}%`, tone: "caution" });
     else if (c.kimchi <= -1) chips.push({ label: `역프 ${c.kimchi.toFixed(1)}%`, tone: "note" });
   }
-  if (opts.listing) chips.push({ label: "선물 상장", tone: "alert" });
-  // 교차상장 신호 — 여러 거래소에 상장됐는데 빠진 곳이 있으면 "○○ 상장 가능성"
-  if (opts.listingPotential) chips.push({ label: `${opts.listingPotential} 상장 가능성`, tone: "note" });
+  if (opts.listing) chips.push(opts.listing);
+  // 교차상장 신호 — 여러 거래소에 상장됐는데 빠진 곳이 있으면 "○○ 상장 후보"(공지 근거 아닌 휴리스틱이라 단정 표현 회피)
+  if (opts.listingPotential) chips.push({ label: `${opts.listingPotential} 상장 후보`, tone: "note" });
   if (opts.event) chips.push({ label: "오늘 일정", tone: "note" });
   return chips;
 }

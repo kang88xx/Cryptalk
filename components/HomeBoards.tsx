@@ -5,18 +5,20 @@ import { formatPostDate } from "@/lib/format";
 // 홈 하단 게시판 영역 — 자유게시판 최신글 + 시장 분석 + 인기글 TOP 9.
 // 페이지에서 분리해 자체 Suspense 경계로 독립 스트리밍되게 한다(상단 시장 카드와 병렬).
 export default async function HomeBoards() {
-  const [recentPosts, hotPosts, analysisPosts] = await Promise.all([
+  const [recentPosts, hotCandidates, analysisPosts] = await Promise.all([
     prisma.post.findMany({
       where: { board: { slug: "free" } },
       orderBy: { createdAt: "desc" },
       take: 12,
       include: { author: { select: { nickname: true } } },
     }),
+    // 인기글 후보를 넉넉히 가져와 "추천수 + 시간감쇠" 점수로 재정렬한다.
+    // 추천수만으로 정렬하면 오래된 글이 영구 고착되므로 HN식 점수로 신선도를 반영.
     prisma.post.findMany({
       orderBy: [{ upvotes: "desc" }, { viewCount: "desc" }],
       where: { upvotes: { gte: 1 } },
-      take: 9,
-      select: { id: true, title: true, upvotes: true },
+      take: 60,
+      select: { id: true, title: true, upvotes: true, createdAt: true, board: { select: { slug: true } } },
     }),
     prisma.post.findMany({
       where: { board: { slug: "analysis" } },
@@ -25,6 +27,16 @@ export default async function HomeBoards() {
       select: { id: true, title: true, priceSymbol: true, createdAt: true },
     }),
   ]);
+
+  // HN식 시간감쇠: score = upvotes / (ageHours + 2)^0.6 — 추천수가 같으면 최신 글이 우선.
+  const nowMs = Date.now();
+  const hotPosts = [...hotCandidates]
+    .map((p) => {
+      const ageHours = Math.max(0, (nowMs - p.createdAt.getTime()) / 3_600_000);
+      return { ...p, score: p.upvotes / Math.pow(ageHours + 2, 0.6) };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 9);
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
@@ -42,20 +54,23 @@ export default async function HomeBoards() {
         ) : (
           <ul className="divide-y divide-line">
             {recentPosts.map((post) => (
-              <li key={post.id} className="flex items-center gap-2 px-4 py-2 text-sm">
+              <li
+                key={post.id}
+                className="flex flex-col gap-0.5 px-4 py-2 text-sm sm:flex-row sm:items-center sm:gap-2"
+              >
                 <Link
                   href={`/free/${post.id}`}
-                  className="flex-1 truncate text-ink-900 hover:text-navy-700 hover:underline"
+                  className="min-w-0 truncate text-ink-900 hover:text-navy-700 hover:underline sm:flex-1"
                 >
                   {post.title}
                   {post.commentCount > 0 && (
                     <span className="ml-1 text-xs text-indigo-700">[{post.commentCount}]</span>
                   )}
                 </Link>
-                <span className="shrink-0 text-xs text-ink-500">{post.author.nickname}</span>
-                <span className="w-12 shrink-0 text-right text-xs text-ink-500">
-                  {formatPostDate(post.createdAt)}
-                </span>
+                <div className="flex shrink-0 items-center gap-2 text-xs text-ink-500">
+                  <span className="max-w-[8rem] truncate">{post.author.nickname}</span>
+                  <span className="w-12 shrink-0 text-right">{formatPostDate(post.createdAt)}</span>
+                </div>
               </li>
             ))}
           </ul>
@@ -109,7 +124,7 @@ export default async function HomeBoards() {
                     {i + 1}
                   </span>
                   <Link
-                    href={`/free/${post.id}`}
+                    href={`/${post.board.slug}/${post.id}`}
                     className="flex-1 truncate text-ink-900 hover:text-navy-700 hover:underline"
                   >
                     {post.title}

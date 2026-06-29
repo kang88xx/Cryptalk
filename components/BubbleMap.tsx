@@ -13,6 +13,9 @@ import {
   forceY,
   type Simulation,
 } from "d3-force";
+import { formatRelativeTime } from "@/lib/format";
+
+const EPOCH = new Date(0).toISOString();
 
 type BubbleCoin = {
   id: string;
@@ -59,6 +62,7 @@ function colorFor(change: number): string {
 
 export default function BubbleMap() {
   const [coins, setCoins] = useState<BubbleCoin[]>([]);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [period, setPeriod] = useState<Period>("24h");
   const [hover, setHover] = useState<string | null>(null);
@@ -101,6 +105,7 @@ export default function BubbleMap() {
       if (!aliveRef.current) return;
       if (Array.isArray(json.coins)) {
         setCoins(json.coins.slice(0, COUNT));
+        if (typeof json.updatedAt === "string") setUpdatedAt(json.updatedAt);
         setError(false);
       }
     } catch {
@@ -134,6 +139,10 @@ export default function BubbleMap() {
   useEffect(() => {
     const { w: W, h: H } = size;
     if (coins.length === 0 || W === 0 || H === 0) return;
+    // 모션 최소화 선호 시: 부유 임펄스 없이 자연 감쇠로 정착시킨다(영구 애니메이션 비활성).
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 
     const valid = coins
       .map((c) => ({ c, change: (c[field] as number | null) ?? null }))
@@ -178,13 +187,15 @@ export default function BubbleMap() {
           .iterations(3)
       )
       .alpha(0.35)
-      .alphaDecay(0) // 절대 멈추지 않음 → 영구 모션
+      .alphaDecay(reduceMotion ? 0.05 : 0) // 기본: 영구 모션 / 모션 최소화: 자연 감쇠 후 정지
       .on("tick", () => {
         const { w, h } = sizeRef.current;
         for (const n of nodes) {
-          // 부유 모션: 매 틱 미세한 랜덤 임펄스
-          n.vx += (Math.random() - 0.5) * 0.18;
-          n.vy += (Math.random() - 0.5) * 0.18;
+          // 부유 모션: 매 틱 미세한 랜덤 임펄스 (모션 최소화 시 생략)
+          if (!reduceMotion) {
+            n.vx += (Math.random() - 0.5) * 0.18;
+            n.vy += (Math.random() - 0.5) * 0.18;
+          }
           // 벽 충돌 반사 → 박스 안에 가둠
           if (n.x < n.r) {
             n.x = n.r;
@@ -217,20 +228,27 @@ export default function BubbleMap() {
   return (
     <div className="flex h-full flex-col">
       {/* 기간 토글 — 버블 크기·색의 "기준" */}
-      <div className="mb-2 flex gap-1">
-        {PERIODS.map((p) => (
-          <button
-            key={p.key}
-            onClick={() => setPeriod(p.key)}
-            className={`rounded px-2 py-0.5 text-[11px] font-semibold transition-colors ${
-              period === p.key
-                ? "bg-navy-900 text-white"
-                : "bg-paper2 text-navy-500 hover:bg-navy-100"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex gap-1">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`rounded px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                period === p.key
+                  ? "bg-navy-900 text-white"
+                  : "bg-paper2 text-navy-500 hover:bg-navy-100"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        {updatedAt && updatedAt !== EPOCH && (
+          <span className="shrink-0 text-[10px] text-ink-400">
+            {formatRelativeTime(updatedAt)} · CoinGecko
+          </span>
+        )}
       </div>
 
       <div
@@ -244,8 +262,13 @@ export default function BubbleMap() {
               <g
                 key={n.coin.id}
                 transform={`translate(${n.x},${n.y})`}
-                className="cursor-pointer"
+                className="cursor-pointer focus:outline-none"
+                role="button"
+                tabIndex={0}
+                aria-label={`${n.coin.name} (${n.coin.symbol}) ${n.change > 0 ? "+" : ""}${n.change.toFixed(1)}%`}
                 onMouseEnter={() => setHover(n.coin.id)}
+                onFocus={() => setHover(n.coin.id)}
+                onClick={() => setHover((h) => (h === n.coin.id ? null : n.coin.id))}
               >
                 <circle
                   r={n.r}

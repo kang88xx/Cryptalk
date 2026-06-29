@@ -98,14 +98,20 @@ const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
 export default function CryptoCalendar({
   initialYear,
   initialMonth,
+  initialEvents,
 }: {
   initialYear: number;
   initialMonth: number; // 1-12
+  initialEvents?: CalendarEvent[]; // 홈 SSR이 넘기는 현재 달 이벤트(초기 스피너·재요청 방지)
 }) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [events, setEvents] = useState<CalendarEvent[]>(initialEvents ?? []);
+  // SSR로 받은 달은 이미 로드된 것으로 표시해 마운트 직후 재요청·스피너를 없앤다.
+  const [loadedKey, setLoadedKey] = useState<string | null>(
+    initialEvents ? `${initialYear}-${initialMonth}` : null
+  );
+  const [error, setError] = useState(false);
   const [selected, setSelected] = useState<CalendarEvent | null>(null);
   const monthKey = `${year}-${month}`;
   const loading = loadedKey !== monthKey;
@@ -194,26 +200,40 @@ export default function CryptoCalendar({
   );
 
   useEffect(() => {
-    let alive = true;
     const key = `${year}-${month}`;
+    if (key === loadedKey) return; // 이미 로드된 달(SSR 초기 데이터 포함) — 재요청 안 함
+    let alive = true;
+    setError(false);
     fetch(`/api/events?year=${year}&month=${month}`)
-      .then((res) => (res.ok ? res.json() : { events: [] }))
+      .then((res) => {
+        if (!res.ok) throw new Error(`events ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
-        if (alive) {
-          setEvents(data.events ?? []);
-          setLoadedKey(key);
-        }
+        if (!alive) return;
+        setEvents(data.events ?? []);
+        setLoadedKey(key);
       })
       .catch(() => {
-        if (alive) {
-          setEvents([]);
-          setLoadedKey(key);
-        }
+        if (!alive) return;
+        setError(true);
+        setEvents([]);
+        setLoadedKey(key); // 스피너 해제 → 에러 UI로 전환
       });
     return () => {
       alive = false;
     };
-  }, [year, month]);
+  }, [year, month, loadedKey]);
+
+  // 모달 ESC 닫기 (접근성)
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelected(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected]);
 
   const moveMonth = (delta: number) => {
     let m = month + delta;
@@ -260,7 +280,7 @@ export default function CryptoCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <section className="border border-line bg-white">
+    <section className="overflow-hidden rounded-xl border border-line bg-white shadow-card transition-shadow hover:shadow-pop">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
         <div className="flex min-w-0 items-baseline gap-2">
           <h2 className="text-base font-semibold tracking-tight text-navy-900">크립토 캘린더</h2>
@@ -291,6 +311,7 @@ export default function CryptoCalendar({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-line px-4 py-2.5">
         <button
           onClick={() => setExcluded(new Set())}
+          aria-pressed={excluded.size === 0}
           className={`flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.1em] transition-colors ${
             excluded.size === 0
               ? "text-navy-900"
@@ -308,6 +329,7 @@ export default function CryptoCalendar({
             <button
               key={g}
               onClick={() => toggleGroup(g)}
+              aria-pressed={on}
               className={`flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.1em] transition-colors ${
                 on ? c.text : "text-navy-300 hover:text-ink-500"
               }`}
@@ -335,6 +357,7 @@ export default function CryptoCalendar({
                     <button
                       key={filterKey(g, s)}
                       onClick={() => toggleSub(g, s)}
+                      aria-pressed={!off}
                       className={`rounded border px-2 py-0.5 text-[11px] font-medium transition-colors ${
                         off
                           ? "border-transparent bg-paper2 text-navy-300 line-through hover:text-ink-500"
@@ -363,6 +386,16 @@ export default function CryptoCalendar({
 
       {loading ? (
         <p className="py-16 text-center text-sm text-ink-500">캘린더 불러오는 중...</p>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-2 py-16 text-center">
+          <p className="text-sm text-ink-500">일정을 불러오지 못했습니다.</p>
+          <button
+            onClick={() => setLoadedKey(null)}
+            className="rounded border border-navy-300 px-3 py-1 text-xs text-ink-600 hover:border-navy-900 hover:text-navy-900"
+          >
+            다시 시도
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-7">
           {cells.map((day, i) => {
@@ -454,6 +487,9 @@ export default function CryptoCalendar({
           onClick={() => setSelected(null)}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selected.ticker} ${selected.title}`}
             className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-xl border border-line bg-white p-6 shadow-pop"
             onClick={(e) => e.stopPropagation()}
           >
@@ -504,6 +540,7 @@ export default function CryptoCalendar({
                 <span />
               )}
               <button
+                autoFocus
                 onClick={() => setSelected(null)}
                 className="border border-navy-300 px-3 py-1 text-sm text-ink-500 hover:border-navy-900 hover:text-navy-900"
               >

@@ -426,7 +426,7 @@ export type RadarCoin = {
   volumeRank: number; // 유동성 종목 내 거래대금 순위(1-base)
 };
 
-export type SignalRadar = { coins: RadarCoin[]; updatedAt: string };
+export type SignalRadar = { coins: RadarCoin[]; updatedAt: string; usdKrwSource: FxSource };
 
 const RADAR_TTL_MS = 60_000;
 
@@ -482,6 +482,7 @@ async function fetchSignalRadar(): Promise<SignalRadar> {
   return {
     coins,
     updatedAt: fetchedAt > 0 ? new Date(fetchedAt).toISOString() : new Date(0).toISOString(),
+    usdKrwSource: fx.source,
   };
 }
 
@@ -489,7 +490,7 @@ export async function getSignalRadar(): Promise<SignalRadar> {
   try {
     return await cachedJson("radar", RADAR_TTL_MS, fetchSignalRadar);
   } catch {
-    return { coins: [], updatedAt: new Date(0).toISOString() };
+    return { coins: [], updatedAt: new Date(0).toISOString(), usdKrwSource: "fallback" };
   }
 }
 

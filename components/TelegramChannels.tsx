@@ -46,17 +46,18 @@ function TelegramIcon() {
 
 export default function TelegramChannels() {
   const [idx, setIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(false); // 호버 일시정지
+  const [autoplay, setAutoplay] = useState(true); // 사용자 명시 정지/재생
   const total = POSTS.length;
 
   const go = useCallback((n: number) => setIdx(((n % total) + total) % total), [total]);
 
-  // 자동 넘김 (5초) — 호버 시 일시정지
+  // 자동 넘김 (5초) — 호버 시 또는 사용자가 정지하면 멈춤
   useEffect(() => {
-    if (paused) return;
+    if (paused || !autoplay) return;
     const t = setInterval(() => setIdx((p) => (p + 1) % total), 5000);
     return () => clearInterval(t);
-  }, [paused, total]);
+  }, [paused, autoplay, total]);
 
   return (
     <section>
@@ -64,10 +65,19 @@ export default function TelegramChannels() {
         <h2 className="flex flex-wrap items-center gap-2 text-base font-bold text-ink-900">
           <span className="h-2 w-2 rounded-full bg-brand" aria-hidden />
           한국 텔레그램 인기 포스팅
-          <span className="rounded bg-paper px-1.5 py-0.5 text-[10px] font-medium text-ink-500">샘플</span>
+          <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">실데이터 준비중 · 샘플</span>
         </h2>
         {/* 달력처럼 한 개씩 넘기는 네비게이션 */}
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setAutoplay((v) => !v)}
+            aria-label={autoplay ? "자동 전환 정지" : "자동 전환 재생"}
+            aria-pressed={!autoplay}
+            className="grid h-7 w-7 place-items-center rounded-full border border-line bg-white text-ink-600 transition-colors hover:bg-paper"
+          >
+            {autoplay ? "❚❚" : "▶"}
+          </button>
           <button
             type="button"
             onClick={() => go(idx - 1)}
@@ -93,6 +103,8 @@ export default function TelegramChannels() {
       {/* 캐러셀 뷰포트 — 한 개씩 슬라이드 */}
       <div
         className="overflow-hidden rounded-xl border border-line bg-white shadow-card"
+        aria-roledescription="carousel"
+        aria-live={autoplay && !paused ? "off" : "polite"}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >

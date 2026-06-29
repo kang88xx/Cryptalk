@@ -94,9 +94,21 @@ export default async function UpcomingEvents() {
                           {nextDay && <span className="ml-0.5 text-[9px] text-navy-300">익일</span>}
                         </span>
                       )}
-                      <span className="min-w-0 flex-1 truncate text-ink-900">
-                        <b className="text-navy-900">{ev.ticker}</b> {ev.title}
-                      </span>
+                      {ev.sourceUrl ? (
+                        <a
+                          href={ev.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="min-w-0 flex-1 truncate text-ink-900 hover:text-navy-700 hover:underline"
+                          title="출처 보기"
+                        >
+                          <b className="text-navy-900">{ev.ticker}</b> {ev.title}
+                        </a>
+                      ) : (
+                        <span className="min-w-0 flex-1 truncate text-ink-900">
+                          <b className="text-navy-900">{ev.ticker}</b> {ev.title}
+                        </span>
+                      )}
                     </li>
                   );
                 })}

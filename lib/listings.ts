@@ -300,16 +300,24 @@ async function scrape(): Promise<{ listings: Listing[]; updatedAt: string }> {
   const html = await res.text();
   const all = parseListings(html);
   const today = kstDay(new Date());
-  const listings = all
-    .filter((l) => kstDay(new Date(l.date)) === today)
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const yesterday = kstDay(new Date(Date.now() - 24 * 3600_000));
+  // 게시일이 오늘/어제인 후보까지 본다 — '어제 공지된 오늘 상장'을 놓치지 않기 위함.
+  // (상장 예정 시각 추출이 네트워크 비용이라 최신 40건으로 제한.)
+  const candidates = all
+    .filter((l) => {
+      const d = kstDay(new Date(l.date));
+      return d === today || d === yesterday;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 40);
+
   // 빗썸 공지 리스트 1콜(거래시각은 제목에 표기) — 매 리스팅 fetch 방지
-  const hasBithumb = listings.some((l) => l.exchange === "Bithumb");
+  const hasBithumb = candidates.some((l) => l.exchange === "Bithumb");
   const bithumbNotices = hasBithumb ? await fetchBithumbNotices() : new Map<string, BithumbNotice>();
 
   // 원문에서 상장 예정 시각 추출 (병렬, 실패 시 null=미정)
   await Promise.all(
-    listings.map(async (l) => {
+    candidates.map(async (l) => {
       if (l.exchange === "Bithumb") {
         // 빗썸: 공지 제목의 "(거래 오픈 …)"을 우선 사용(안정적), 없으면 본문 best-effort
         const id = l.url?.match(/feed\.bithumb\.com\/notice\/(\d+)/)?.[1];
@@ -321,15 +329,24 @@ async function scrape(): Promise<{ listings: Listing[]; updatedAt: string }> {
       l.scheduledAt = await extractScheduledTime(l.url);
     })
   );
+
+  // '금일'은 게시일이 아니라 상장 예정일(scheduledAt) 기준으로 확정 — 없으면 게시일로 폴백.
+  // 임박 순(예정 시각 빠른 것)으로 정렬해 위쪽에 가장 가까운 일정이 오게 한다.
+  const listings = candidates
+    .filter((l) => kstDay(new Date(l.scheduledAt ?? l.date)) === today)
+    .sort((a, b) => (a.scheduledAt ?? a.date).localeCompare(b.scheduledAt ?? b.date));
+
   return { listings, updatedAt: new Date().toISOString() };
 }
 
 // 금일(KST) 신규 상장 예정 (바이낸스 선물·Upbit·Bithumb·Bybit·Robinhood·Coinbase·OKX) — DB 공유 캐시(30분)
-export async function getTodayListings(): Promise<{ listings: Listing[]; updatedAt: string }> {
+// ok=false 는 '수집 실패(직전 데이터 없음)' — UI가 진짜 0건과 장애를 구분하게 한다.
+export async function getTodayListings(): Promise<{ listings: Listing[]; updatedAt: string; ok: boolean }> {
   try {
-    // -v5: OKX 노출 대상 추가 — 옛 캐시 무시하고 즉시 새 분류로 갱신
-    return await cachedJson("listings-v5", TTL_MS, scrape);
+    // -v6: 상장 예정일(scheduledAt) 기준 필터로 변경 — 옛 캐시 무시하고 즉시 갱신
+    const r = await cachedJson("listings-v6", TTL_MS, scrape);
+    return { ...r, ok: true };
   } catch {
-    return { listings: [], updatedAt: new Date(0).toISOString() };
+    return { listings: [], updatedAt: new Date(0).toISOString(), ok: false };
   }
 }
