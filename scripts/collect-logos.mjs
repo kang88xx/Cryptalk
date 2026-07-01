@@ -30,6 +30,14 @@ const STOCK_DOMAIN = {
   AAPL: "apple.com", AVGO: "broadcom.com", MU: "micron.com",
   NVDA: "nvidia.com", ORCL: "oracle.com", SPCX: "spacex.com",
   COIN: "coinbase.com", NKN: "nkn.org",
+  // 2026-07 LAYER.GG 캘린더 종목
+  MSFT: "microsoft.com", GOOG: "google.com", META: "meta.com",
+  AMZN: "amazon.com", TSLA: "tesla.com", IBM: "ibm.com",
+  INTC: "intel.com", KLAC: "kla.com", ARM: "arm.com",
+  ASML: "asml.com", TSM: "tsmc.com", KLAR: "klarna.com",
+  HOOD: "robinhood.com", SAMSUNG: "samsung.com", SAMSUNGEM: "samsungsem.com",
+  HYNIX: "skhynix.com", HYUNDAI: "hyundai.com", ANTHROPIC: "anthropic.com",
+  OPENAI: "openai.com", CBRS: "cerebras.ai",
 };
 
 async function download(url, dest) {

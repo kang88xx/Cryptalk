@@ -11,6 +11,7 @@ const EMOJI_ICON: Record<string, string> = {
   JP: "🇯🇵",
   EU: "🇪🇺",
   FOMC: "🏛️",
+  FED: "🏛️",
   OPEC: "🛢️",
   IRAN: "⚠️",
   WORLDCUP: "⚽",

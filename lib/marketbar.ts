@@ -9,17 +9,27 @@ import { getFxHistory } from "@/lib/market";
 // blockchain.info 해시레이트 기반으로 계산해 marketCache("btcMiningCost")에 적재하고, 아래에서 읽는다.
 const BTC_MINING_AVG_COST_USD = 71_900;
 
-// 크론이 적재한 채굴원가를 읽음 (없으면 폴백 상수)
-async function getStoredMiningCost(): Promise<number> {
+// ISO 시각 → KST "M/D" (업데이트 날짜 표기용)
+function kstMonthDay(iso: string): string {
+  const [, mm, dd] = kstDay(new Date(iso)).split("-");
+  return `${Number(mm)}/${Number(dd)}`;
+}
+
+// 크론이 적재한 채굴원가 + 갱신 시각을 읽음 (없으면 폴백 상수)
+async function getStoredMiningCost(): Promise<{ costUsd: number; updatedAt: string | null }> {
   try {
     const row = await prisma.marketCache.findUnique({
       where: { key: "btcMiningCost" },
-      select: { data: true },
+      select: { data: true, updatedAt: true },
     });
-    const c = (row?.data as { costUsd?: number } | undefined)?.costUsd;
-    return typeof c === "number" && c > 0 ? c : BTC_MINING_AVG_COST_USD;
+    const d = row?.data as { costUsd?: number; updatedAt?: string } | undefined;
+    const c = d?.costUsd;
+    return {
+      costUsd: typeof c === "number" && c > 0 ? c : BTC_MINING_AVG_COST_USD,
+      updatedAt: d?.updatedAt ?? row?.updatedAt?.toISOString() ?? null,
+    };
   } catch {
-    return BTC_MINING_AVG_COST_USD;
+    return { costUsd: BTC_MINING_AVG_COST_USD, updatedAt: null };
   }
 }
 
@@ -43,21 +53,20 @@ export type BarFng = {
   label: string; // 한글 분류 (극단적 공포 등)
   history: FngDay[]; // 과거→현재 순 6일
 };
-// USDT 타일 — 도미넌스 + 테더(원)·김프 + 환율·변동 + 환율 미니차트
+// 테더(USDT) 김프 타일 — 현재 김프(헤드라인) + 6일 변동성 + 테더(원)·환율 보조
 export type BarUsdt = {
   tetherKrw: number | null; // 업비트 테더 시세(원)
-  tetherKimchi: number | null; // 테더 김프(%)
-  usdKrw: number | null; // 환율 USD/KRW
+  tetherKimchi: number | null; // 현재 테더 김프(%) — 헤드라인
+  usdKrw: number | null; // 환율 USD/KRW (보조)
   fxChangePct: number | null; // 환율 전일 대비(%)
-  fxSpark: number[]; // 환율 미니 차트 시리즈
+  kimchiSpark: number[]; // 최근 6일(일봉) 김프(%) 시리즈 — 변동성 표시
 };
 // 환율 USD/KRW 타일 — 현재값(+변동) + 6일 추이
 export type FxDay = { date: string; rate: number }; // date: "M/D"
 export type BarFx = { fx6: FxDay[] }; // 최근 6일
 // 비트코인 채굴 손익분기점 — 평균 채굴원가(= 손익분기 가격) + 원가/가격 비율
 export type BarMining = {
-  costUsd: number; // 평균 채굴원가 (USD) = 손익분기 가격
-  ratio: number | null; // 원가/가격 (1 초과면 채굴 손실)
+  pricePct: number | null; // 손익분기 대비 현재가 등락(%) — 양수=채굴 이익, 음수=채굴 손실
 };
 export type BarTile = {
   key: string;
@@ -75,8 +84,7 @@ export type BarTile = {
   usdt?: BarUsdt; // USDT 압축 카드 (도미넌스+테더+환율)
   fx?: BarFx; // 환율 USD/KRW 타일 (6일 추이)
   mining?: BarMining; // 비트코인 채굴 손익분기점
-  valueTone?: number; // 값 색상을 부호로 표시 (김프 등: 양수=레드, 음수=블루)
-  sub?: string; // 값 아래 작은 보조 캡션 (예: BTC · 업비트 기준)
+  sub?: string; // 값 위 작은 보조 캡션 (예: 업데이트 날짜)
   note?: string; // 자리표시자 보조 문구 (예: 지표 찾는중…)
   placeholder?: boolean; // 미정 타일 (고민중) — fng 수신 실패 시 폴백
 };
@@ -274,29 +282,47 @@ async function fetchFearGreed(): Promise<BarFng | null> {
       .map((r) => {
         const dt = new Date(Number(r.timestamp) * 1000);
         return { date: `${dt.getUTCMonth() + 1}/${dt.getUTCDate()}`, value: Number(r.value) };
-      });
+      })
+      .filter((d) => Number.isFinite(d.value)); // 잘못된 값(NaN)이 스파크라인/색상에 들어가지 않도록
     return { value, label: fngLabelKo(cur.value_classification, value), history };
   } catch {
     return null;
   }
 }
 
-// ── 도미넌스 (TradingView) — CRYPTOCAP:BTC.D / USDT.D 시총 점유율 ──
-async function fetchTvSymbolClose(symbol: string): Promise<number | null> {
+// ── 테더(USDT) 김프 6일 변동성 — 업비트 KRW-USDT 일봉 종가 ÷ 환율 ──
+// 업비트 일봉(최신→과거) 종가를 과거→최신 순으로 반환. 실패 시 빈 배열.
+async function fetchUsdtDailyCloses(): Promise<{ date: string; close: number }[]> {
   try {
-    const d = await fetchJson<{ close?: number }>(
-      `https://scanner.tradingview.com/symbol?symbol=${encodeURIComponent(symbol)}&fields=close,change&no_404=true`,
+    const rows = await fetchJson<{ candle_date_time_kst: string; trade_price: number }[]>(
+      "https://api.upbit.com/v1/candles/days?market=KRW-USDT&count=8",
       7000
     );
-    return typeof d.close === "number" && Number.isFinite(d.close) ? d.close : null;
+    if (!Array.isArray(rows)) return [];
+    return rows
+      .map((r) => ({ date: r.candle_date_time_kst.slice(0, 10), close: r.trade_price }))
+      .filter((d) => Number.isFinite(d.close) && d.close > 0)
+      .reverse();
   } catch {
-    return null;
+    return [];
   }
 }
 
-// USDT 도미넌스 — TradingView (현재값만)
-async function fetchUsdtDominance(): Promise<number | null> {
-  return fetchTvSymbolClose("CRYPTOCAP:USDT.D");
+// 일봉 테더 종가 + 환율 6일치를 날짜로 맞춰 김프(%) 시리즈 구성 (최근 6일).
+// 환율은 대상일 이하 중 가장 최근 값을 사용 — 주말엔 직전 영업일 환율로 대체된다.
+function buildKimchiSeries(
+  daily: { date: string; close: number }[],
+  fxHistory: { date: string; rate: number }[]
+): number[] {
+  if (daily.length === 0) return [];
+  const fxSorted = fxHistory.filter((p) => p.rate > 0).sort((a, b) => a.date.localeCompare(b.date));
+  if (fxSorted.length === 0) return [];
+  const fxFor = (date: string): number => {
+    let rate = fxSorted[0].rate;
+    for (const p of fxSorted) if (p.date <= date) rate = p.rate;
+    return rate;
+  };
+  return daily.map((d) => (d.close / fxFor(d.date) - 1) * 100).slice(-6);
 }
 
 // BTC 도미넌스 — marketSnapshot(5분 간격 기록)에서 현재값 + KST 일자별 6일 추세.
@@ -364,22 +390,25 @@ async function fetchMarketBar(): Promise<MarketBarData> {
 
   // MSTR 트레저리 수익률 계산용 BTC 현재가(USD) — Binance BTC 결과 재사용
   const btcUsd = coins[BINANCE_COINS.findIndex((c) => c.key === "btc")]?.price ?? null;
-  const [treasury, fng, btcDom, usdtDom, tickerSnap, exchanges, fxHistory, miningCost] =
+  const [treasury, fng, btcDom, usdtDaily, tickerSnap, exchanges, fxHistory, miningInfo] =
     await Promise.all([
       fetchMstrTreasury(btcUsd),
       fetchFearGreed(),
       fetchBtcDominanceSeries(), // BTC 도미넌스 현재값 + 6일 추세 (marketSnapshot)
-      fetchUsdtDominance(), // USDT 도미넌스 (TradingView)
+      fetchUsdtDailyCloses(), // 테더(USDT) 일봉 종가 — 김프 6일 변동성용
       getTickers(), // 김치프리미엄(BTC) + 환율 출처
       getExchangeComparison(), // 테더(USDT) 업비트 시세
       getFxHistory(), // 환율 USD/KRW 6일 추이
-      getStoredMiningCost(), // 크론 적재 채굴원가
+      getStoredMiningCost(), // 크론 적재 채굴원가 + 갱신 시각
     ]);
-  const dominance = { btc: btcDom.current, usdt: usdtDom };
+  const btcDominance = btcDom.current;
+  const miningCost = miningInfo.costUsd;
+  const miningUpdatedAt = miningInfo.updatedAt;
   // USDT/환율 데이터 — 테더(원)·김프 + 환율·변동 + 환율 시리즈(미니차트 / 6일 추이)
   const usdtKrw = exchanges.usdtUpbit ?? null;
   const usdKrw = tickerSnap.usdKrw > 0 ? tickerSnap.usdKrw : null;
   const usdtKimchi = usdtKrw != null && usdKrw != null ? (usdtKrw / usdKrw - 1) * 100 : null;
+  const kimchiSpark = buildKimchiSeries(usdtDaily, fxHistory); // 최근 6일 김프 변동성
   const fxRates = fxHistory.map((p) => p.rate).filter((r) => r > 0);
   const fxChangePct =
     fxRates.length >= 2 ? (fxRates[fxRates.length - 1] / fxRates[fxRates.length - 2] - 1) * 100 : null;
@@ -461,33 +490,33 @@ async function fetchMarketBar(): Promise<MarketBarData> {
     placeholder: !fng,
   });
 
-  // 3행 — USDT 도미넌스 · BTC 도미넌스 · 채굴 손익분기점(지표 탐색중) · 빈칸
+  // 3행 — 테더(USDT) 김프 · BTC 도미넌스 · 채굴 손익분기점 · 환율
   tiles.push({
-    key: "usdtDom",
-    label: "USDT 도미넌스",
-    value: dominance.usdt != null ? `${dominance.usdt.toFixed(2)}%` : "-",
+    key: "usdtKimchi",
+    label: "테더(USDT) 김프",
+    value: usdtKimchi != null ? `${usdtKimchi >= 0 ? "+" : ""}${usdtKimchi.toFixed(2)}%` : "-",
     changePct: null,
-    spark: fxRates.slice(-14),
+    spark: [],
     group: "macro",
     usdt: {
       tetherKrw: usdtKrw,
       tetherKimchi: usdtKimchi,
       usdKrw,
       fxChangePct,
-      fxSpark: fxRates.slice(-14),
+      kimchiSpark,
     },
-    placeholder: dominance.usdt == null,
+    placeholder: usdtKimchi == null,
   });
   tiles.push({
     key: "btcDom",
     label: "BTC 도미넌스",
-    value: dominance.btc != null ? `${dominance.btc.toFixed(2)}%` : "-",
+    value: btcDominance != null ? `${btcDominance.toFixed(2)}%` : "-",
     changePct: null,
     spark: [],
     group: "macro",
     dom6: btcDom.trend6.length > 0 ? btcDom.trend6 : undefined,
-    barPct: btcDom.trend6.length > 0 ? undefined : dominance.btc ?? undefined, // 이력 없으면 막대 폴백
-    placeholder: dominance.btc == null,
+    barPct: btcDom.trend6.length > 0 ? undefined : btcDominance ?? undefined, // 이력 없으면 막대 폴백
+    placeholder: btcDominance == null,
   });
   tiles.push({
     key: "btcBreakeven",
@@ -496,9 +525,9 @@ async function fetchMarketBar(): Promise<MarketBarData> {
     changePct: null,
     spark: [],
     group: "macro",
+    sub: miningUpdatedAt ? `업데이트 ${kstMonthDay(miningUpdatedAt)}` : undefined,
     mining: {
-      costUsd: miningCost,
-      ratio: btcUsd && btcUsd > 0 ? miningCost / btcUsd : null,
+      pricePct: btcUsd && btcUsd > 0 ? (btcUsd / miningCost - 1) * 100 : null,
     },
   });
   tiles.push({
@@ -523,7 +552,8 @@ async function fetchMarketBar(): Promise<MarketBarData> {
 
 export async function getMarketBar(): Promise<MarketBarData> {
   try {
-    return await cachedJson("marketbar", TTL_MS, fetchMarketBar);
+    // 캐시 키 버전 — 타일 데이터 형태 변경 시 올려 구(舊) 형태 캐시로 인한 크래시 방지 (v2: 김프·채굴% 개편)
+    return await cachedJson("marketbar:v2", TTL_MS, fetchMarketBar);
   } catch {
     return { tiles: [], updatedAt: new Date(0).toISOString() };
   }
